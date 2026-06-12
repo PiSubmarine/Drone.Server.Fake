@@ -22,6 +22,7 @@ namespace PiSubmarine::Drone::Server::Fake
 {
     namespace
     {
+        // FIXME Remove dirty WSL2 hack
         [[nodiscard]] std::filesystem::path NormalizePathForCurrentPlatform(const std::filesystem::path& path)
         {
 #ifdef __linux__
