@@ -12,6 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "PiSubmarine/Drone/Server/Fake/Logging.h"
 #include "PiSubmarine/Drone/Server/Fake/Runtime.h"
 #include "PiSubmarine/Error/Api/Error.h"
 #include "PiSubmarine/Video/Server/GStreamer/Source.h"
@@ -85,11 +86,7 @@ namespace PiSubmarine::Drone::Server::Fake
 
         [[nodiscard]] std::shared_ptr<spdlog::logger> CreateLogger()
         {
-            auto logger = std::make_shared<spdlog::logger>(
-                "Drone.Server.Fake.App",
-                std::make_shared<spdlog::sinks::stderr_color_sink_mt>());
-            logger->set_pattern("[%Y-%m-%d %T.%e] [%-20n] [%^%-8l%$] [%s:%#] %v");
-            return logger;
+            return CreateConfiguredLogger("Drone.Server.Fake.App");
         }
 
         [[nodiscard]] const char* ToString(const Error::Api::ErrorCondition condition) noexcept
