@@ -15,7 +15,6 @@
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
 #include "PiSubmarine/Drone/Server/Fake/MotorProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
-#include "PiSubmarine/Drone/Server/Fake/VideoController.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
 #include "PiSubmarine/Lease/InMemory/Manager.h"
@@ -24,6 +23,8 @@
 #include "PiSubmarine/Telemetry/Server/Udp/Server.h"
 #include "PiSubmarine/Time/Manager.h"
 #include "PiSubmarine/Udp/Asio/Socket.h"
+#include "PiSubmarine/Video/Server/GStreamer/Controller.h"
+#include "PiSubmarine/Video/Subscription/Grpc/Server/Server.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -42,6 +43,8 @@ namespace PiSubmarine::Drone::Server::Fake
             : LoggingFactory()
             , LeaseManager(LoggingFactory)
             , LeaseServer(LeaseManager, LoggingFactory, config.LeaseServer)
+            , VideoController(config.VideoController, LoggingFactory, LeaseManager, LeaseManager)
+            , VideoSubscriptionServer(VideoController, LoggingFactory, config.VideoSubscriptionServer)
             , ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetryAggregator(Telemetry::Aggregator::Providers{
@@ -52,7 +55,7 @@ namespace PiSubmarine::Drone::Server::Fake
                 m_VerticalController,
                 m_GimbalController,
                 m_LampController,
-                m_VideoController)
+                VideoController)
             , HoldPositionPilot()
             , ControlEngine(
                 LeaseManager,
@@ -81,11 +84,14 @@ namespace PiSubmarine::Drone::Server::Fake
             ThrowIfError(TimeManager.AddTickable(ControlServer), "adding control server to Time.Manager");
             ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
             ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
+            ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
         }
 
         LoggerFactory LoggingFactory;
         Lease::InMemory::Manager LeaseManager;
         Lease::Server::Grpc::Server LeaseServer;
+        Video::Server::GStreamer::Controller VideoController;
+        Video::Subscription::Grpc::Server::Server VideoSubscriptionServer;
 
         Udp::Asio::Socket ControlSocket;
         Udp::Asio::Socket TelemetrySocket;
@@ -94,7 +100,6 @@ namespace PiSubmarine::Drone::Server::Fake
         VerticalController m_VerticalController;
         GimbalController m_GimbalController;
         LampController m_LampController;
-        VideoController m_VideoController;
 
         BatteryProvider m_BatteryProvider;
         MotorProvider m_FrontLeftThruster;
@@ -196,6 +201,12 @@ namespace PiSubmarine::Drone::Server::Fake
             return std::unexpected(MakeRuntimeError(ErrorCode::LeaseServerStartFailed));
         }
 
+        const auto videoSubscriptionStartResult = m_Impl->VideoSubscriptionServer.Start();
+        if (!videoSubscriptionStartResult.has_value())
+        {
+            return std::unexpected(MakeRuntimeError(ErrorCode::VideoSubscriptionServerStartFailed));
+        }
+
         return {};
     }
 
@@ -206,6 +217,7 @@ namespace PiSubmarine::Drone::Server::Fake
             return;
         }
 
+        m_Impl->VideoSubscriptionServer.Stop();
         m_Impl->LeaseServer.Stop();
     }
 

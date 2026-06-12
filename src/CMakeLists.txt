@@ -10,7 +10,6 @@ add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/LoggerFactory.cpp
         PiSubmarine/Drone/Server/Fake/MotorProvider.cpp
         PiSubmarine/Drone/Server/Fake/VerticalController.cpp
-        PiSubmarine/Drone/Server/Fake/VideoController.cpp
         PiSubmarine/Drone/Server/Fake/Runtime.cpp)
 target_include_directories(${PISUBMARINE_MODULE_NAME}
         PUBLIC "../public"
@@ -85,3 +84,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Time.Manager
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Udp.Asio.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Udp.Asio)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Video.Server.GStreamer.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Video.Server.GStreamer)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Video.Subscription.Grpc.Server.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Video.Subscription.Grpc.Server)

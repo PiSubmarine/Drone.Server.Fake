@@ -14,6 +14,7 @@
 
 #include "PiSubmarine/Drone/Server/Fake/Runtime.h"
 #include "PiSubmarine/Error/Api/Error.h"
+#include "PiSubmarine/Video/Server/GStreamer/Source.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -135,6 +136,9 @@ int main(const int argc, char** argv)
         std::filesystem::path clientCertificateAuthorityPath;
         auto controlAddress = FormatEndpoint(config.ControlEndpoint);
         auto telemetryAddress = FormatEndpoint(config.TelemetryEndpoint);
+        std::string videoSubscriptionAddress = "0.0.0.0:50054";
+        std::string videoResourceId = config.VideoController.ResourceId.Value;
+        std::string videoSourceDescription;
 
         CLI::App app{"PiSubmarine fake drone server"};
         app.add_option("--lease-address", config.LeaseServer.Address, "Lease gRPC bind address")
@@ -149,6 +153,17 @@ int main(const int argc, char** argv)
             ->default_val(controlAddress);
         app.add_option("--telemetry-address", telemetryAddress, "Telemetry UDP bind address")
             ->default_val(telemetryAddress);
+        app.add_option(
+                "--video-subscription-address",
+                videoSubscriptionAddress,
+                "Video subscription gRPC bind address")
+            ->default_val(videoSubscriptionAddress);
+        app.add_option("--video-resource-id", videoResourceId, "Lease resource id used for video streaming")
+            ->default_val(videoResourceId);
+        app.add_option(
+                "--video-source",
+                videoSourceDescription,
+                "Optional explicit GStreamer source element description. Leave empty for autodetect.");
 
         auto tickPeriodMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(config.TickPeriod).count();
         app.add_option("--tick-period-ms", tickPeriodMilliseconds, "Tick period in milliseconds")
@@ -186,6 +201,16 @@ int main(const int argc, char** argv)
         config.LeaseServer.ServerCertificateChain = ReadTextFile(serverCertificatePath);
         config.LeaseServer.ServerPrivateKey = ReadTextFile(serverPrivateKeyPath);
         config.LeaseServer.ClientCertificateAuthority = ReadTextFile(clientCertificateAuthorityPath);
+        config.VideoSubscriptionServer.Address = videoSubscriptionAddress;
+        config.VideoSubscriptionServer.ServerCertificateChain = config.LeaseServer.ServerCertificateChain;
+        config.VideoSubscriptionServer.ServerPrivateKey = config.LeaseServer.ServerPrivateKey;
+        config.VideoSubscriptionServer.ClientCertificateAuthority = config.LeaseServer.ClientCertificateAuthority;
+        config.VideoController.ResourceId = PiSubmarine::Lease::Api::ResourceId{.Value = videoResourceId};
+        if (!videoSourceDescription.empty())
+        {
+            config.VideoController.VideoSource = PiSubmarine::Video::Server::GStreamer::ElementSource{
+                .Description = videoSourceDescription};
+        }
 
         Runtime runtime(config);
         const auto runResult = runtime.Run();

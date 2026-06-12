@@ -9,7 +9,8 @@ namespace PiSubmarine::Drone::Server::Fake
         AlreadyStarted = 1,
         ControlBindFailed,
         TelemetryBindFailed,
-        LeaseServerStartFailed
+        LeaseServerStartFailed,
+        VideoSubscriptionServerStartFailed
     };
 
     [[nodiscard]] std::error_code make_error_code(ErrorCode errorCode) noexcept;
