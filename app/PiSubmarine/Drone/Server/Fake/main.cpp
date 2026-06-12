@@ -15,6 +15,7 @@
 #include "PiSubmarine/Drone/Server/Fake/Runtime.h"
 #include "PiSubmarine/Error/Api/Error.h"
 #include "PiSubmarine/Video/Server/GStreamer/Source.h"
+#include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -139,6 +140,8 @@ int main(const int argc, char** argv)
         std::string videoSubscriptionAddress = "0.0.0.0:50054";
         std::string videoResourceId = config.VideoController.ResourceId.Value;
         std::string videoSourceDescription;
+        std::string startupVideoEndpoint;
+        bool startupVideoEnable = config.StartupVideoEnable;
 
         CLI::App app{"PiSubmarine fake drone server"};
         app.add_option("--lease-address", config.LeaseServer.Address, "Lease gRPC bind address")
@@ -164,6 +167,14 @@ int main(const int argc, char** argv)
                 "--video-source",
                 videoSourceDescription,
                 "Optional explicit GStreamer source element description. Leave empty for autodetect.");
+        app.add_option(
+                "--startup-video-endpoint",
+                startupVideoEndpoint,
+                "Optional host:port RTP endpoint to subscribe immediately at startup.");
+        app.add_flag(
+                "--startup-video-enable",
+                startupVideoEnable,
+                "Enable video streaming target at startup using low-latency profile and autofocus.");
 
         auto tickPeriodMilliseconds = std::chrono::duration_cast<std::chrono::milliseconds>(config.TickPeriod).count();
         app.add_option("--tick-period-ms", tickPeriodMilliseconds, "Tick period in milliseconds")
@@ -195,8 +206,25 @@ int main(const int argc, char** argv)
             return 2;
         }
 
+        std::optional<PiSubmarine::Video::Subscription::Api::Endpoint> parsedStartupVideoEndpoint;
+        if (!startupVideoEndpoint.empty())
+        {
+            const auto parsedEndpoint = ParseEndpoint(startupVideoEndpoint);
+            if (!parsedEndpoint.has_value())
+            {
+                SPDLOG_LOGGER_ERROR(logger, "Invalid --startup-video-endpoint value. Expected host:port.");
+                return 2;
+            }
+
+            parsedStartupVideoEndpoint = PiSubmarine::Video::Subscription::Api::Endpoint{
+                .Host = parsedEndpoint->Address,
+                .Port = parsedEndpoint->Port};
+        }
+
         config.ControlEndpoint = *parsedControlEndpoint;
         config.TelemetryEndpoint = *parsedTelemetryEndpoint;
+        config.StartupVideoEndpoint = parsedStartupVideoEndpoint;
+        config.StartupVideoEnable = startupVideoEnable;
         config.TickPeriod = std::chrono::milliseconds(tickPeriodMilliseconds);
         config.LeaseServer.ServerCertificateChain = ReadTextFile(serverCertificatePath);
         config.LeaseServer.ServerPrivateKey = ReadTextFile(serverPrivateKeyPath);

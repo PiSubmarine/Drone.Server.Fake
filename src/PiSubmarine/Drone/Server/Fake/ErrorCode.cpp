@@ -17,13 +17,14 @@ namespace PiSubmarine::Drone::Server::Fake
 
             [[nodiscard]] std::string message(const int condition) const override
             {
-                constexpr std::array<std::string_view, 6> Messages{
+                constexpr std::array<std::string_view, 7> Messages{
                     "success",
                     "server already started",
                     "failed to bind control UDP endpoint",
                     "failed to bind telemetry UDP endpoint",
                     "failed to start lease gRPC server",
-                    "failed to start video subscription gRPC server"};
+                    "failed to start video subscription gRPC server",
+                    "failed to create startup video subscription"};
 
                 const auto index = static_cast<std::size_t>(condition);
                 if (index >= Messages.size())

@@ -2,12 +2,14 @@
 
 #include <chrono>
 #include <memory>
+#include <optional>
 
 #include "PiSubmarine/Drone/Server/Fake/ErrorCode.h"
 #include "PiSubmarine/Error/Api/Result.h"
 #include "PiSubmarine/Lease/Server/Grpc/Server.h"
 #include "PiSubmarine/Udp/Api/Endpoint.h"
 #include "PiSubmarine/Video/Server/GStreamer/Config.h"
+#include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
 #include "PiSubmarine/Video/Subscription/Grpc/Server/Server.h"
 
 namespace PiSubmarine::Drone::Server::Fake
@@ -20,6 +22,8 @@ namespace PiSubmarine::Drone::Server::Fake
             Lease::Server::Grpc::TlsConfig LeaseServer;
             Video::Subscription::Grpc::Server::TlsConfig VideoSubscriptionServer;
             Video::Server::GStreamer::Config VideoController;
+            std::optional<Video::Subscription::Api::Endpoint> StartupVideoEndpoint;
+            bool StartupVideoEnable = false;
             Udp::Api::Endpoint ControlEndpoint{"127.0.0.1", 50052};
             Udp::Api::Endpoint TelemetryEndpoint{"127.0.0.1", 50053};
             std::chrono::nanoseconds TickPeriod = std::chrono::milliseconds(10);
