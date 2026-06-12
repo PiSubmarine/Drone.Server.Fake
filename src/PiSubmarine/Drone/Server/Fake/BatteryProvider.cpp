@@ -1,8 +1,8 @@
-#include "PiSubmarine/Drone/Server/Fake/FakeBatteryProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    Error::Api::Result<Battery::Telemetry::Api::State> FakeBatteryProvider::GetState() const
+    Error::Api::Result<Battery::Telemetry::Api::State> BatteryProvider::GetState() const
     {
         return Battery::Telemetry::Api::State{
             .PackVoltage = Volts{16.0},

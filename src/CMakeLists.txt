@@ -3,14 +3,14 @@ include("${PISUBMARINE_BUILD_SYSTEM}")
 message("Adding library: ${PISUBMARINE_MODULE_NAME}")
 add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/ErrorCode.cpp
-        PiSubmarine/Drone/Server/Fake/FakeBatteryProvider.cpp
-        PiSubmarine/Drone/Server/Fake/FakeGimbalController.cpp
-        PiSubmarine/Drone/Server/Fake/FakeHorizontalController.cpp
-        PiSubmarine/Drone/Server/Fake/FakeLampController.cpp
+        PiSubmarine/Drone/Server/Fake/BatteryProvider.cpp
+        PiSubmarine/Drone/Server/Fake/GimbalController.cpp
+        PiSubmarine/Drone/Server/Fake/HorizontalController.cpp
+        PiSubmarine/Drone/Server/Fake/LampController.cpp
         PiSubmarine/Drone/Server/Fake/LoggerFactory.cpp
-        PiSubmarine/Drone/Server/Fake/FakeMotorProvider.cpp
-        PiSubmarine/Drone/Server/Fake/FakeVerticalController.cpp
-        PiSubmarine/Drone/Server/Fake/FakeVideoController.cpp
+        PiSubmarine/Drone/Server/Fake/MotorProvider.cpp
+        PiSubmarine/Drone/Server/Fake/VerticalController.cpp
+        PiSubmarine/Drone/Server/Fake/VideoController.cpp
         PiSubmarine/Drone/Server/Fake/Runtime.cpp)
 target_include_directories(${PISUBMARINE_MODULE_NAME}
         PUBLIC "../public"

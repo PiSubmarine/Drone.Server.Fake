@@ -4,7 +4,7 @@
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    class FakeBatteryProvider final : public Battery::Telemetry::Api::IProvider
+    class BatteryProvider final : public Battery::Telemetry::Api::IProvider
     {
     public:
         [[nodiscard]] Error::Api::Result<Battery::Telemetry::Api::State> GetState() const override;

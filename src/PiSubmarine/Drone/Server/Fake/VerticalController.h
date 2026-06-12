@@ -4,7 +4,7 @@
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    class FakeVerticalController final : public Control::Vertical::Api::IController
+    class VerticalController final : public Control::Vertical::Api::IController
     {
     public:
         [[nodiscard]] Error::Api::Result<void> SetTarget(const Control::Vertical::Api::Command& target) override;

@@ -8,14 +8,14 @@
 #include "PiSubmarine/Control/Pilot/Manual/Controller.h"
 #include "PiSubmarine/Control/Protobuf/Deserializer.h"
 #include "PiSubmarine/Control/Server/Udp/Server.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeBatteryProvider.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeGimbalController.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeHorizontalController.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeLampController.h"
+#include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/GimbalController.h"
+#include "PiSubmarine/Drone/Server/Fake/HorizontalController.h"
+#include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeMotorProvider.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeVerticalController.h"
-#include "PiSubmarine/Drone/Server/Fake/FakeVideoController.h"
+#include "PiSubmarine/Drone/Server/Fake/MotorProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
+#include "PiSubmarine/Drone/Server/Fake/VideoController.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
 #include "PiSubmarine/Lease/InMemory/Manager.h"
@@ -45,14 +45,14 @@ namespace PiSubmarine::Drone::Server::Fake
             , ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetryAggregator(Telemetry::Aggregator::Providers{
-                .Battery = &BatteryProvider,
-                .Thrusters = {&FrontLeftThruster, &FrontRightThruster, &RearLeftThruster, &RearRightThruster}})
+                .Battery = &m_BatteryProvider,
+                .Thrusters = {&m_FrontLeftThruster, &m_FrontRightThruster, &m_RearLeftThruster, &m_RearRightThruster}})
             , ManualPilot(
-                HorizontalController,
-                VerticalController,
-                GimbalController,
-                LampController,
-                VideoController)
+                m_HorizontalController,
+                m_VerticalController,
+                m_GimbalController,
+                m_LampController,
+                m_VideoController)
             , HoldPositionPilot()
             , ControlEngine(
                 LeaseManager,
@@ -90,17 +90,17 @@ namespace PiSubmarine::Drone::Server::Fake
         Udp::Asio::Socket ControlSocket;
         Udp::Asio::Socket TelemetrySocket;
 
-        FakeHorizontalController HorizontalController;
-        FakeVerticalController VerticalController;
-        FakeGimbalController GimbalController;
-        FakeLampController LampController;
-        FakeVideoController VideoController;
+        HorizontalController m_HorizontalController;
+        VerticalController m_VerticalController;
+        GimbalController m_GimbalController;
+        LampController m_LampController;
+        VideoController m_VideoController;
 
-        FakeBatteryProvider BatteryProvider;
-        FakeMotorProvider FrontLeftThruster;
-        FakeMotorProvider FrontRightThruster;
-        FakeMotorProvider RearLeftThruster;
-        FakeMotorProvider RearRightThruster;
+        BatteryProvider m_BatteryProvider;
+        MotorProvider m_FrontLeftThruster;
+        MotorProvider m_FrontRightThruster;
+        MotorProvider m_RearLeftThruster;
+        MotorProvider m_RearRightThruster;
 
         Telemetry::Aggregator TelemetryAggregator;
         Control::Pilot::Manual::Controller ManualPilot;

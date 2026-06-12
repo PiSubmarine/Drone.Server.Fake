@@ -4,7 +4,7 @@
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    class FakeVideoController final : public Control::Video::Api::IController
+    class VideoController final : public Control::Video::Api::IController
     {
     public:
         [[nodiscard]] Error::Api::Result<void> SetTarget(const Control::Video::Api::Command& target) override;
