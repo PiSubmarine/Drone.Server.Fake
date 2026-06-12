@@ -1,0 +1,10 @@
+{
+  "dependencies": [
+    "boost-asio",
+    "cli11",
+    "grpc",
+    "gtest",
+    "protobuf",
+    "spdlog"
+  ]
+}
