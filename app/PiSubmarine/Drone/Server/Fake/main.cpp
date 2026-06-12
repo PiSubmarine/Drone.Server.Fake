@@ -10,7 +10,7 @@
 
 #include <CLI/CLI.hpp>
 #include <spdlog/spdlog.h>
-#include <spdlog/sinks/stderr_color_sinks.h>
+#include <spdlog/sinks/stdout_color_sinks.h>
 
 #include "PiSubmarine/Drone/Server/Fake/Runtime.h"
 #include "PiSubmarine/Error/Api/Error.h"
