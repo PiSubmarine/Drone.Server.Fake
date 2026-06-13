@@ -25,18 +25,21 @@ methods and a blocking `Run()` loop.
 Internally it composes:
 
 - `Lease.InMemory`
+- `Grpc.Server`
 - `Lease.Server.Grpc`
+- `Video.Subscription.Grpc.Server`
 - `Control.Engine`
 - `Control.Server.Udp`
 - `Control.Pilot.Manual`
 - `Control.Pilot.Dummy`
-- `Telemetry.Aggregator`
+- `Battery.Telemetry.Protobuf`
+- `Motor.Telemetry.Protobuf`
 - `Telemetry.Server.Udp`
 - `Time.Manager`
 - `Udp.Asio`
 
 `Runtime` owns the static composition graph, binds the UDP sockets, starts the
-lease gRPC server, and then gives the main thread to `Time.Manager`.
+shared gRPC server, and then gives the main thread to `Time.Manager`.
 
 The fake low-level controllers and telemetry providers live only inside this
 module as private implementation details and are not intended to be reused

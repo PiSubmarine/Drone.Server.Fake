@@ -64,20 +64,20 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Lease.Server
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Logging.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Logging.Api)
 
-PiSubmarineAddDependency("https://github.com/PiSubmarine/Telemetry.Aggregator.git" "")
-target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Telemetry.Aggregator)
-
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Telemetry.Server.Udp.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Telemetry.Server.Udp)
 
-PiSubmarineAddDependency("https://github.com/PiSubmarine/Telemetry.Serialization.Protobuf.git" "")
-target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Telemetry.Serialization.Protobuf)
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Battery.Telemetry.Protobuf.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Battery.Telemetry.Protobuf)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Battery.Telemetry.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Battery.Telemetry.Api)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Motor.Telemetry.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Motor.Telemetry.Api)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Motor.Telemetry.Protobuf.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Motor.Telemetry.Protobuf)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Time.Tickable.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Time.Tickable.Api)
