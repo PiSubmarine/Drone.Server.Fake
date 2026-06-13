@@ -12,14 +12,14 @@ namespace PiSubmarine::Drone::Server::Fake
         EXPECT_FALSE(runtime.IsRunning());
     }
 
-    TEST(RuntimeTest, RunFailsWhenLeaseTlsConfigurationIsMissing)
+    TEST(RuntimeTest, RunFailsWhenGrpcTlsConfigurationIsMissing)
     {
         Runtime runtime(Runtime::Config{});
 
         const auto result = runtime.Run();
 
         ASSERT_FALSE(result.has_value());
-        EXPECT_EQ(result.error().Cause, make_error_code(ErrorCode::LeaseServerStartFailed));
+        EXPECT_EQ(result.error().Cause, make_error_code(ErrorCode::GrpcServerStartFailed));
         EXPECT_FALSE(runtime.IsRunning());
     }
 }

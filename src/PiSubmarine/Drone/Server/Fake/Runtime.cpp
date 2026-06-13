@@ -23,10 +23,12 @@
 #include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
+#include "PiSubmarine/Grpc/Server/Server.h"
 #include "PiSubmarine/Lease/Api/ILeaseIssuer.h"
 #include "PiSubmarine/Lease/Api/Lease.h"
 #include "PiSubmarine/Lease/Api/LeaseRequest.h"
 #include "PiSubmarine/Lease/InMemory/Manager.h"
+#include "PiSubmarine/Lease/Server/Grpc/Adapter.h"
 #include "PiSubmarine/Telemetry/Aggregator.h"
 #include "PiSubmarine/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Telemetry/Server/Udp/Server.h"
@@ -37,7 +39,7 @@
 #include "PiSubmarine/Video/Subscription/Api/IService.h"
 #include "PiSubmarine/Video/Subscription/Api/SubscribeRequest.h"
 #include "PiSubmarine/Video/Subscription/Api/UnsubscribeRequest.h"
-#include "PiSubmarine/Video/Subscription/Grpc/Server/Server.h"
+#include "PiSubmarine/Video/Subscription/Grpc/Server/Adapter.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -246,9 +248,10 @@ namespace PiSubmarine::Drone::Server::Fake
         explicit Impl(const Config& config)
             : LoggingFactory()
             , LeaseManager(LoggingFactory)
-            , LeaseServer(LeaseManager, LoggingFactory, config.LeaseServer)
+            , GrpcServer(LoggingFactory, config.GrpcServer)
+            , LeaseServer(LeaseManager, LoggingFactory)
             , VideoController(config.VideoController, LoggingFactory, LeaseManager, LeaseManager)
-            , VideoSubscriptionServer(VideoController, LoggingFactory, config.VideoSubscriptionServer)
+            , VideoSubscriptionServer(VideoController, LoggingFactory)
             , StartupSubscriber(
                 config.StartupVideoEndpoint,
                 config.VideoController.ResourceId,
@@ -297,13 +300,17 @@ namespace PiSubmarine::Drone::Server::Fake
             ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
             ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
             ThrowIfError(TimeManager.AddTickable(StartupSubscriber), "adding startup video subscriber to Time.Manager");
+
+            GrpcServer.RegisterService(LeaseServer);
+            GrpcServer.RegisterService(VideoSubscriptionServer);
         }
 
         LoggerFactory LoggingFactory;
         Lease::InMemory::Manager LeaseManager;
-        Lease::Server::Grpc::Server LeaseServer;
+        ::PiSubmarine::Grpc::Server::Server GrpcServer;
+        Lease::Server::Grpc::Adapter LeaseServer;
         Video::Server::GStreamer::Controller VideoController;
-        Video::Subscription::Grpc::Server::Server VideoSubscriptionServer;
+        Video::Subscription::Grpc::Server::Adapter VideoSubscriptionServer;
         StartupVideoSubscriber StartupSubscriber;
 
         Udp::Asio::Socket ControlSocket;
@@ -409,16 +416,10 @@ namespace PiSubmarine::Drone::Server::Fake
             m_Impl->TelemetrySocketBound = true;
         }
 
-        const auto leaseStartResult = m_Impl->LeaseServer.Start();
-        if (!leaseStartResult.has_value())
+        const auto grpcStartResult = m_Impl->GrpcServer.Start();
+        if (!grpcStartResult.has_value())
         {
-            return std::unexpected(MakeRuntimeError(ErrorCode::LeaseServerStartFailed));
-        }
-
-        const auto videoSubscriptionStartResult = m_Impl->VideoSubscriptionServer.Start();
-        if (!videoSubscriptionStartResult.has_value())
-        {
-            return std::unexpected(MakeRuntimeError(ErrorCode::VideoSubscriptionServerStartFailed));
+            return std::unexpected(MakeRuntimeError(ErrorCode::GrpcServerStartFailed));
         }
 
         if (m_Impl->StartupVideoEnable)
@@ -466,8 +467,7 @@ namespace PiSubmarine::Drone::Server::Fake
         }
 
         m_Impl->StartupSubscriber.Stop();
-        m_Impl->VideoSubscriptionServer.Stop();
-        m_Impl->LeaseServer.Stop();
+        m_Impl->GrpcServer.Stop();
     }
 
     Error::Api::Error Runtime::MakeRuntimeError(const ErrorCode code) noexcept

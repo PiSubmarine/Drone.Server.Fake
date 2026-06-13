@@ -9,8 +9,7 @@ namespace PiSubmarine::Drone::Server::Fake
         AlreadyStarted = 1,
         ControlBindFailed,
         TelemetryBindFailed,
-        LeaseServerStartFailed,
-        VideoSubscriptionServerStartFailed,
+        GrpcServerStartFailed,
         StartupVideoSubscriptionFailed
     };
 

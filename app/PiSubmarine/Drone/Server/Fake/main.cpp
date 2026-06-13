@@ -135,15 +135,15 @@ int main(const int argc, char** argv)
         std::filesystem::path clientCertificateAuthorityPath;
         auto controlAddress = FormatEndpoint(config.ControlEndpoint);
         auto telemetryAddress = FormatEndpoint(config.TelemetryEndpoint);
-        std::string videoSubscriptionAddress = "0.0.0.0:50054";
+        std::string grpcAddress = "0.0.0.0:50051";
         std::string videoResourceId = config.VideoController.ResourceId.Value;
         std::string videoSourceDescription;
         std::string startupVideoEndpoint;
         bool startupVideoEnable = config.StartupVideoEnable;
 
         CLI::App app{"PiSubmarine fake drone server"};
-        app.add_option("--lease-address", config.LeaseServer.Address, "Lease gRPC bind address")
-            ->default_val("0.0.0.0:50051");
+        app.add_option("--grpc-address", grpcAddress, "Shared gRPC bind address")
+            ->default_val(grpcAddress);
         app.add_option("--server-cert", serverCertificatePath, "PEM server certificate chain file")
             ->required();
         app.add_option("--server-key", serverPrivateKeyPath, "PEM server private key file")
@@ -154,11 +154,6 @@ int main(const int argc, char** argv)
             ->default_val(controlAddress);
         app.add_option("--telemetry-address", telemetryAddress, "Telemetry UDP bind address")
             ->default_val(telemetryAddress);
-        app.add_option(
-                "--video-subscription-address",
-                videoSubscriptionAddress,
-                "Video subscription gRPC bind address")
-            ->default_val(videoSubscriptionAddress);
         app.add_option("--video-resource-id", videoResourceId, "Lease resource id used for video streaming")
             ->default_val(videoResourceId);
         app.add_option(
@@ -224,13 +219,10 @@ int main(const int argc, char** argv)
         config.StartupVideoEndpoint = parsedStartupVideoEndpoint;
         config.StartupVideoEnable = startupVideoEnable;
         config.TickPeriod = std::chrono::milliseconds(tickPeriodMilliseconds);
-        config.LeaseServer.ServerCertificateChain = ReadTextFile(serverCertificatePath);
-        config.LeaseServer.ServerPrivateKey = ReadTextFile(serverPrivateKeyPath);
-        config.LeaseServer.ClientCertificateAuthority = ReadTextFile(clientCertificateAuthorityPath);
-        config.VideoSubscriptionServer.Address = videoSubscriptionAddress;
-        config.VideoSubscriptionServer.ServerCertificateChain = config.LeaseServer.ServerCertificateChain;
-        config.VideoSubscriptionServer.ServerPrivateKey = config.LeaseServer.ServerPrivateKey;
-        config.VideoSubscriptionServer.ClientCertificateAuthority = config.LeaseServer.ClientCertificateAuthority;
+        config.GrpcServer.Address = grpcAddress;
+        config.GrpcServer.ServerCertificateChain = ReadTextFile(serverCertificatePath);
+        config.GrpcServer.ServerPrivateKey = ReadTextFile(serverPrivateKeyPath);
+        config.GrpcServer.ClientCertificateAuthority = ReadTextFile(clientCertificateAuthorityPath);
         config.VideoController.ResourceId = PiSubmarine::Lease::Api::ResourceId{.Value = videoResourceId};
         if (!videoSourceDescription.empty())
         {

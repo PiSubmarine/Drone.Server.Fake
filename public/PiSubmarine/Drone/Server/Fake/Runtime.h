@@ -6,11 +6,10 @@
 
 #include "PiSubmarine/Drone/Server/Fake/ErrorCode.h"
 #include "PiSubmarine/Error/Api/Result.h"
-#include "PiSubmarine/Lease/Server/Grpc/Server.h"
+#include "PiSubmarine/Grpc/Server/Server.h"
 #include "PiSubmarine/Udp/Api/Endpoint.h"
 #include "PiSubmarine/Video/Server/GStreamer/Config.h"
 #include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
-#include "PiSubmarine/Video/Subscription/Grpc/Server/Server.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -19,8 +18,7 @@ namespace PiSubmarine::Drone::Server::Fake
     public:
         struct Config
         {
-            Lease::Server::Grpc::TlsConfig LeaseServer;
-            Video::Subscription::Grpc::Server::TlsConfig VideoSubscriptionServer;
+            ::PiSubmarine::Grpc::Server::TlsConfig GrpcServer;
             Video::Server::GStreamer::Config VideoController;
             std::optional<Video::Subscription::Api::Endpoint> StartupVideoEndpoint;
             bool StartupVideoEnable = false;

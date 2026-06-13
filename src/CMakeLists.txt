@@ -55,6 +55,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vide
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Lease.InMemory.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Lease.InMemory)
 
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Grpc.Server.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Grpc.Server)
+
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Lease.Server.Grpc.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Lease.Server.Grpc)
 
