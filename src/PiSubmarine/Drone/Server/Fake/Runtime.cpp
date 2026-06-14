@@ -31,6 +31,8 @@
 #include "PiSubmarine/Lease/InMemory/Manager.h"
 #include "PiSubmarine/Lease/Server/Grpc/Adapter.h"
 #include "PiSubmarine/Motor/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Security/Aead/Openssl/Provider.h"
+#include "PiSubmarine/Security/Nonce/Openssl/Provider.h"
 #include "PiSubmarine/Telemetry/Server/Udp/Server.h"
 #include "PiSubmarine/Time/Manager.h"
 #include "PiSubmarine/Time/ITickable.h"
@@ -265,6 +267,8 @@ namespace PiSubmarine::Drone::Server::Fake
                 LoggingFactory)
             , ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
+            , TelemetryAeadProvider()
+            , TelemetryNonceProvider()
             , BatteryTelemetrySerializer(m_BatteryProvider)
             , FrontLeftMotorTelemetrySerializer(m_FrontLeftThruster)
             , FrontRightMotorTelemetrySerializer(m_FrontRightThruster)
@@ -297,6 +301,8 @@ namespace PiSubmarine::Drone::Server::Fake
                 TelemetrySources,
                 LeaseManager,
                 LeaseManager,
+                TelemetryAeadProvider,
+                TelemetryNonceProvider,
                 TelemetrySocket,
                 TelemetrySocket)
             , TimeManager(config.TickPeriod)
@@ -326,6 +332,8 @@ namespace PiSubmarine::Drone::Server::Fake
 
         Udp::Asio::Socket ControlSocket;
         Udp::Asio::Socket TelemetrySocket;
+        Security::Aead::Openssl::Provider TelemetryAeadProvider;
+        Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
         HorizontalController m_HorizontalController;
         VerticalController m_VerticalController;

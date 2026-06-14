@@ -67,6 +67,12 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Logging.Api)
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Telemetry.Server.Udp.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Telemetry.Server.Udp)
 
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Security.Aead.Openssl.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Security.Aead.Openssl)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Security.Nonce.Openssl.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Security.Nonce.Openssl)
+
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Battery.Telemetry.Protobuf.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Battery.Telemetry.Protobuf)
 
