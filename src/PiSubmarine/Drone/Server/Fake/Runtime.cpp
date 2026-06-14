@@ -45,469 +45,482 @@
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    namespace
-    {
-        constexpr std::string_view ControlResourceIdValue = "control-main";
-        constexpr std::string_view BatteryChannelIdValue = "battery.main";
-        constexpr std::string_view FrontLeftMotorChannelIdValue = "motor.front-left";
-        constexpr std::string_view FrontRightMotorChannelIdValue = "motor.front-right";
-        constexpr std::string_view RearLeftMotorChannelIdValue = "motor.rear-left";
-        constexpr std::string_view RearRightMotorChannelIdValue = "motor.rear-right";
+	namespace
+	{
+		constexpr std::string_view ControlResourceIdValue = "control-main";
+		constexpr std::string_view BatteryChannelIdValue = "battery.main";
+		constexpr std::string_view FrontLeftMotorChannelIdValue = "motor.front-left";
+		constexpr std::string_view FrontRightMotorChannelIdValue = "motor.front-right";
+		constexpr std::string_view RearLeftMotorChannelIdValue = "motor.rear-left";
+		constexpr std::string_view RearRightMotorChannelIdValue = "motor.rear-right";
 
-        [[nodiscard]] Error::Api::Error MakeCommunicationError(const ErrorCode code) noexcept
-        {
-            return Error::Api::MakeError(Error::Api::ErrorCondition::CommunicationError, make_error_code(code));
-        }
+		[[nodiscard]] Error::Api::Error MakeCommunicationError(const ErrorCode code) noexcept
+		{
+			return Error::Api::MakeError(Error::Api::ErrorCondition::CommunicationError, make_error_code(code));
+		}
 
-        [[nodiscard]] Lease::Api::ResourceId MakeControlResourceId()
-        {
-            return Lease::Api::ResourceId{.Value = std::string(ControlResourceIdValue)};
-        }
+		[[nodiscard]] Lease::Api::ResourceId MakeControlResourceId()
+		{
+			return Lease::Api::ResourceId{.Value = std::string(ControlResourceIdValue)};
+		}
 
-        class StartupVideoSubscriber final : public Time::ITickable
-        {
-        public:
-            StartupVideoSubscriber(
-                std::optional<Video::Subscription::Api::Endpoint> endpoint,
-                Lease::Api::ResourceId resourceId,
-                Lease::Api::ILeaseIssuer& leaseIssuer,
-                Video::Subscription::Api::IService& videoService,
-                Logging::Api::IFactory& loggerFactory)
-                : m_Endpoint(std::move(endpoint))
-                , m_ResourceId(std::move(resourceId))
-                , m_LeaseIssuer(leaseIssuer)
-                , m_VideoService(videoService)
-                , m_Logger(loggerFactory.CreateLogger("Drone.Server.Fake.StartupVideoSubscriber"))
-            {
-            }
+		class StartupVideoSubscriber final : public Time::ITickable
+		{
+		public:
+			StartupVideoSubscriber(
+				std::optional<Video::Subscription::Api::Endpoint> endpoint,
+				Lease::Api::ResourceId resourceId,
+				Lease::Api::ILeaseIssuer& leaseIssuer,
+				Video::Subscription::Api::IService& videoService,
+				Logging::Api::IFactory& loggerFactory)
+				: m_Endpoint(std::move(endpoint)),
+				  m_ResourceId(std::move(resourceId)),
+				  m_LeaseIssuer(leaseIssuer),
+				  m_VideoService(videoService),
+				  m_Logger(loggerFactory.CreateLogger("Drone.Server.Fake.StartupVideoSubscriber"))
+			{
+			}
 
-            [[nodiscard]] Error::Api::Result<void> Start()
-            {
-                if (!m_Endpoint.has_value())
-                {
-                    return {};
-                }
+			[[nodiscard]] Error::Api::Result<void> Start()
+			{
+				if (!m_Endpoint.has_value())
+				{
+					return {};
+				}
 
-                return EnsureSubscribed(std::chrono::nanoseconds::zero());
-            }
+				return EnsureSubscribed(std::chrono::nanoseconds::zero());
+			}
 
-            void Stop() noexcept
-            {
-                if (!m_ActiveLease.has_value())
-                {
-                    return;
-                }
+			void Stop() noexcept
+			{
+				if (!m_ActiveLease.has_value())
+				{
+					return;
+				}
 
-                const auto leaseId = m_ActiveLease->Id;
-                const auto unsubscribeResult = m_VideoService.Unsubscribe(
-                    Video::Subscription::Api::UnsubscribeRequest{.LeaseId = leaseId});
-                if (!unsubscribeResult.has_value())
-                {
-                    SPDLOG_LOGGER_WARN(m_Logger, "Failed to remove startup video subscription for lease {}.", leaseId.Value);
-                }
+				const auto leaseId = m_ActiveLease->Id;
+				const auto unsubscribeResult = m_VideoService.Unsubscribe(
+					Video::Subscription::Api::UnsubscribeRequest{.LeaseId = leaseId});
+				if (!unsubscribeResult.has_value())
+				{
+					SPDLOG_LOGGER_WARN(m_Logger, "Failed to remove startup video subscription for lease {}.",
+					                   leaseId.Value);
+				}
 
-                const auto releaseResult = m_LeaseIssuer.ReleaseLease(leaseId);
-                if (!releaseResult.has_value())
-                {
-                    SPDLOG_LOGGER_WARN(m_Logger, "Failed to release startup video lease {}.", leaseId.Value);
-                }
+				const auto releaseResult = m_LeaseIssuer.ReleaseLease(leaseId);
+				if (!releaseResult.has_value())
+				{
+					SPDLOG_LOGGER_WARN(m_Logger, "Failed to release startup video lease {}.", leaseId.Value);
+				}
 
-                ClearLeaseState();
-            }
+				ClearLeaseState();
+			}
 
-            void Tick(const std::chrono::nanoseconds& uptime, const std::chrono::nanoseconds&) override
-            {
-                if (!m_Endpoint.has_value() || uptime < m_NextActionAt)
-                {
-                    return;
-                }
+			void Tick(const std::chrono::nanoseconds& uptime, const std::chrono::nanoseconds&) override
+			{
+				if (!m_Endpoint.has_value() || uptime < m_NextActionAt)
+				{
+					return;
+				}
 
-                if (!m_ActiveLease.has_value())
-                {
-                    const auto subscribeResult = EnsureSubscribed(uptime);
-                    if (!subscribeResult.has_value())
-                    {
-                        SPDLOG_LOGGER_WARN(
-                            m_Logger,
-                            "Retrying startup video subscription for resource {} after failure.",
-                            m_ResourceId.Value);
-                        m_NextActionAt = uptime + RetryDelay;
-                    }
+				if (!m_ActiveLease.has_value())
+				{
+					const auto subscribeResult = EnsureSubscribed(uptime);
+					if (!subscribeResult.has_value())
+					{
+						SPDLOG_LOGGER_WARN(
+							m_Logger,
+							"Retrying startup video subscription for resource {} after failure.",
+							m_ResourceId.Value);
+						m_NextActionAt = uptime + RetryDelay;
+					}
 
-                    return;
-                }
+					return;
+				}
 
-                const auto renewResult = m_LeaseIssuer.RenewLease(m_ActiveLease->Id);
-                if (!renewResult.has_value())
-                {
-                    SPDLOG_LOGGER_WARN(
-                        m_Logger,
-                        "Failed to renew startup video lease {} for resource {}.",
-                        m_ActiveLease->Id.Value,
-                        m_ResourceId.Value);
-                    CleanupStaleSubscription();
-                    m_NextActionAt = uptime + RetryDelay;
-                    return;
-                }
+				const auto renewResult = m_LeaseIssuer.RenewLease(m_ActiveLease->Id);
+				if (!renewResult.has_value())
+				{
+					SPDLOG_LOGGER_WARN(
+						m_Logger,
+						"Failed to renew startup video lease {} for resource {}.",
+						m_ActiveLease->Id.Value,
+						m_ResourceId.Value);
+					CleanupStaleSubscription();
+					m_NextActionAt = uptime + RetryDelay;
+					return;
+				}
 
-                m_ActiveLease = renewResult.value();
-                m_NextActionAt = uptime + HalfDuration(m_ActiveLease->Duration);
-            }
+				m_ActiveLease = renewResult.value();
+				m_NextActionAt = uptime + HalfDuration(m_ActiveLease->Duration);
+			}
 
-        private:
-            [[nodiscard]] Error::Api::Result<void> EnsureSubscribed(const std::chrono::nanoseconds& uptime)
-            {
-                if (!m_Endpoint.has_value())
-                {
-                    return {};
-                }
+		private:
+			[[nodiscard]] Error::Api::Result<void> EnsureSubscribed(const std::chrono::nanoseconds& uptime)
+			{
+				if (!m_Endpoint.has_value())
+				{
+					return {};
+				}
 
-                const auto acquireResult = m_LeaseIssuer.AcquireLease(Lease::Api::LeaseRequest{.Resource = m_ResourceId});
-                if (!acquireResult.has_value())
-                {
-                    return std::unexpected(acquireResult.error());
-                }
+				const auto acquireResult = m_LeaseIssuer.AcquireLease(
+					Lease::Api::LeaseRequest{.Resource = m_ResourceId});
+				if (!acquireResult.has_value())
+				{
+					return std::unexpected(acquireResult.error());
+				}
 
-                const auto acquiredLease = acquireResult->Lease;
-                const auto subscribeResult = m_VideoService.Subscribe(
-                    Video::Subscription::Api::SubscribeRequest{
-                        .LeaseId = acquiredLease.Id,
-                        .ClientEndpoint = *m_Endpoint});
-                if (!subscribeResult.has_value())
-                {
-                    const auto releaseResult = m_LeaseIssuer.ReleaseLease(acquiredLease.Id);
-                    if (!releaseResult.has_value())
-                    {
-                        SPDLOG_LOGGER_WARN(
-                            m_Logger,
-                            "Failed to release startup video lease {} after subscribe failure.",
-                            acquiredLease.Id.Value);
-                    }
+				const auto acquiredLease = acquireResult->Lease;
+				const auto subscribeResult = m_VideoService.Subscribe(
+					Video::Subscription::Api::SubscribeRequest{
+						.LeaseId = acquiredLease.Id,
+						.ClientEndpoint = *m_Endpoint
+					});
+				if (!subscribeResult.has_value())
+				{
+					const auto releaseResult = m_LeaseIssuer.ReleaseLease(acquiredLease.Id);
+					if (!releaseResult.has_value())
+					{
+						SPDLOG_LOGGER_WARN(
+							m_Logger,
+							"Failed to release startup video lease {} after subscribe failure.",
+							acquiredLease.Id.Value);
+					}
 
-                    return std::unexpected(subscribeResult.error());
-                }
+					return std::unexpected(subscribeResult.error());
+				}
 
-                m_ActiveLease = acquiredLease;
-                m_NextActionAt = uptime + HalfDuration(acquiredLease.Duration);
-                SPDLOG_LOGGER_INFO(
-                    m_Logger,
-                    "Created startup video subscription for {}:{} using lease {} on resource {}.",
-                    m_Endpoint->Host,
-                    m_Endpoint->Port,
-                    acquiredLease.Id.Value,
-                    m_ResourceId.Value);
-                return {};
-            }
+				m_ActiveLease = acquiredLease;
+				m_NextActionAt = uptime + HalfDuration(acquiredLease.Duration);
+				SPDLOG_LOGGER_INFO(
+					m_Logger,
+					"Created startup video subscription for {}:{} using lease {} on resource {}.",
+					m_Endpoint->Host,
+					m_Endpoint->Port,
+					acquiredLease.Id.Value,
+					m_ResourceId.Value);
+				return {};
+			}
 
-            void CleanupStaleSubscription() noexcept
-            {
-                if (!m_ActiveLease.has_value())
-                {
-                    return;
-                }
+			void CleanupStaleSubscription() noexcept
+			{
+				if (!m_ActiveLease.has_value())
+				{
+					return;
+				}
 
-                const auto leaseId = m_ActiveLease->Id;
-                const auto unsubscribeResult = m_VideoService.Unsubscribe(
-                    Video::Subscription::Api::UnsubscribeRequest{.LeaseId = leaseId});
-                if (!unsubscribeResult.has_value())
-                {
-                    SPDLOG_LOGGER_WARN(
-                        m_Logger,
-                        "Failed to remove stale startup video subscription for lease {}.",
-                        leaseId.Value);
-                }
+				const auto leaseId = m_ActiveLease->Id;
+				const auto unsubscribeResult = m_VideoService.Unsubscribe(
+					Video::Subscription::Api::UnsubscribeRequest{.LeaseId = leaseId});
+				if (!unsubscribeResult.has_value())
+				{
+					SPDLOG_LOGGER_WARN(
+						m_Logger,
+						"Failed to remove stale startup video subscription for lease {}.",
+						leaseId.Value);
+				}
 
-                ClearLeaseState();
-            }
+				ClearLeaseState();
+			}
 
-            void ClearLeaseState() noexcept
-            {
-                m_ActiveLease.reset();
-                m_NextActionAt = std::chrono::nanoseconds::zero();
-            }
+			void ClearLeaseState() noexcept
+			{
+				m_ActiveLease.reset();
+				m_NextActionAt = std::chrono::nanoseconds::zero();
+			}
 
-            [[nodiscard]] static std::chrono::nanoseconds HalfDuration(const std::chrono::milliseconds duration) noexcept
-            {
-                const auto halfDuration = duration / 2;
-                if (halfDuration > std::chrono::milliseconds::zero())
-                {
-                    return std::chrono::duration_cast<std::chrono::nanoseconds>(halfDuration);
-                }
+			[[nodiscard]] static std::chrono::nanoseconds HalfDuration(
+				const std::chrono::milliseconds duration) noexcept
+			{
+				const auto halfDuration = duration / 2;
+				if (halfDuration > std::chrono::milliseconds::zero())
+				{
+					return std::chrono::duration_cast<std::chrono::nanoseconds>(halfDuration);
+				}
 
-                return std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
-            }
+				return std::chrono::duration_cast<std::chrono::nanoseconds>(duration);
+			}
 
-            static constexpr auto RetryDelay = std::chrono::seconds(1);
+			static constexpr auto RetryDelay = std::chrono::seconds(1);
 
-            std::optional<Video::Subscription::Api::Endpoint> m_Endpoint;
-            Lease::Api::ResourceId m_ResourceId;
-            Lease::Api::ILeaseIssuer& m_LeaseIssuer;
-            Video::Subscription::Api::IService& m_VideoService;
-            std::shared_ptr<spdlog::logger> m_Logger;
-            std::optional<Lease::Api::Lease> m_ActiveLease;
-            std::chrono::nanoseconds m_NextActionAt = std::chrono::nanoseconds::zero();
-        };
-    }
+			std::optional<Video::Subscription::Api::Endpoint> m_Endpoint;
+			Lease::Api::ResourceId m_ResourceId;
+			Lease::Api::ILeaseIssuer& m_LeaseIssuer;
+			Video::Subscription::Api::IService& m_VideoService;
+			std::shared_ptr<spdlog::logger> m_Logger;
+			std::optional<Lease::Api::Lease> m_ActiveLease;
+			std::chrono::nanoseconds m_NextActionAt = std::chrono::nanoseconds::zero();
+		};
+	}
 
-    class Runtime::Impl
-    {
-    public:
-        explicit Impl(const Config& config)
-            : LoggingFactory()
-            , LeaseManager(LoggingFactory)
-            , GrpcServer(LoggingFactory, config.GrpcServer)
-            , LeaseServer(LeaseManager, LoggingFactory)
-            , VideoController(config.VideoController, LoggingFactory, LeaseManager, LeaseManager)
-            , VideoSubscriptionServer(VideoController, LoggingFactory)
-            , StartupSubscriber(
-                config.StartupVideoEndpoint,
-                config.VideoController.ResourceId,
-                LeaseManager,
-                VideoController,
-                LoggingFactory)
-            , ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
-            , TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
-            , ControlAeadProvider()
-            , TelemetryAeadProvider()
-            , TelemetryNonceProvider()
-            , BatteryTelemetrySerializer(m_BatteryProvider)
-            , FrontLeftMotorTelemetrySerializer(m_FrontLeftThruster)
-            , FrontRightMotorTelemetrySerializer(m_FrontRightThruster)
-            , RearLeftMotorTelemetrySerializer(m_RearLeftThruster)
-            , RearRightMotorTelemetrySerializer(m_RearRightThruster)
-            , TelemetrySources({
-                {Telemetry::Api::ChannelId{.Value = std::string(BatteryChannelIdValue)}, &BatteryTelemetrySerializer},
-                {Telemetry::Api::ChannelId{.Value = std::string(FrontLeftMotorChannelIdValue)}, &FrontLeftMotorTelemetrySerializer},
-                {Telemetry::Api::ChannelId{.Value = std::string(FrontRightMotorChannelIdValue)}, &FrontRightMotorTelemetrySerializer},
-                {Telemetry::Api::ChannelId{.Value = std::string(RearLeftMotorChannelIdValue)}, &RearLeftMotorTelemetrySerializer},
-                {Telemetry::Api::ChannelId{.Value = std::string(RearRightMotorChannelIdValue)}, &RearRightMotorTelemetrySerializer}})
-            , ManualPilot(
-                m_HorizontalController,
-                m_VerticalController,
-                m_GimbalController,
-                m_LampController,
-                VideoController)
-            , HoldPositionPilot()
-            , ControlEngine(
-                LeaseManager,
-                LeaseManager,
-                ManualPilot,
-                HoldPositionPilot)
-            , ControlDeserializer()
-            , ControlServer(
-                ControlEngine,
-                ControlDeserializer,
-                LeaseManager,
-                ControlAeadProvider,
-                ControlSocket)
-            , TelemetryServer(
-                TelemetrySources,
-                LeaseManager,
-                LeaseManager,
-                LeaseManager,
-                TelemetryAeadProvider,
-                TelemetryNonceProvider,
-                TelemetrySocket,
-                TelemetrySocket)
-            , TimeManager(config.TickPeriod)
-            , ControlEndpoint(config.ControlEndpoint)
-            , TelemetryEndpoint(config.TelemetryEndpoint)
-            , StartupVideoEnable(config.StartupVideoEnable)
-        {
-            ThrowIfError(TimeManager.AddTickable(ControlSocket), "adding control socket to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(TelemetrySocket), "adding telemetry socket to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(ControlServer), "adding control server to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
-            ThrowIfError(TimeManager.AddTickable(StartupSubscriber), "adding startup video subscriber to Time.Manager");
+	class Runtime::Impl
+	{
+	public:
+		explicit Impl(const Config& config)
+			: LeaseManager(LoggingFactory),
+			  GrpcServer(LoggingFactory, config.GrpcServer),
+			  LeaseServer(LeaseManager, LoggingFactory),
+			  VideoController(config.VideoController, LoggingFactory, LeaseManager, LeaseManager),
+			  VideoSubscriptionServer(VideoController, LoggingFactory),
+			  StartupSubscriber(
+				  config.StartupVideoEndpoint,
+				  config.VideoController.ResourceId,
+				  LeaseManager,
+				  VideoController,
+				  LoggingFactory),
+			  ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
+			  TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
+			  BatteryTelemetrySerializer(m_BatteryProvider),
+			  FrontLeftMotorTelemetrySerializer(m_FrontLeftThruster),
+			  FrontRightMotorTelemetrySerializer(m_FrontRightThruster),
+			  RearLeftMotorTelemetrySerializer(m_RearLeftThruster),
+			  RearRightMotorTelemetrySerializer(m_RearRightThruster),
+			  TelemetrySources({
+				  {Telemetry::Api::ChannelId{.Value = std::string(BatteryChannelIdValue)}, &BatteryTelemetrySerializer},
+				  {
+					  Telemetry::Api::ChannelId{.Value = std::string(FrontLeftMotorChannelIdValue)},
+					  &FrontLeftMotorTelemetrySerializer
+				  },
+				  {
+					  Telemetry::Api::ChannelId{.Value = std::string(FrontRightMotorChannelIdValue)},
+					  &FrontRightMotorTelemetrySerializer
+				  },
+				  {
+					  Telemetry::Api::ChannelId{.Value = std::string(RearLeftMotorChannelIdValue)},
+					  &RearLeftMotorTelemetrySerializer
+				  },
+				  {
+					  Telemetry::Api::ChannelId{.Value = std::string(RearRightMotorChannelIdValue)},
+					  &RearRightMotorTelemetrySerializer
+				  }
+			  }),
+			  ManualPilot(
+				  m_HorizontalController,
+				  m_VerticalController,
+				  m_GimbalController,
+				  m_LampController,
+				  VideoController),
+			  ControlEngine(
+				  LeaseManager,
+				  LeaseManager,
+				  ManualPilot,
+				  HoldPositionPilot),
+			  ControlServer(
+				  ControlEngine,
+				  ControlDeserializer,
+				  LeaseManager,
+				  ControlAeadProvider,
+				  ControlSocket),
+			  TelemetryServer(
+				  TelemetrySources,
+				  LeaseManager,
+				  LeaseManager,
+				  LeaseManager,
+				  TelemetryAeadProvider,
+				  TelemetryNonceProvider,
+				  TelemetrySocket,
+				  TelemetrySocket),
+			  TimeManager(config.TickPeriod),
+			  ControlEndpoint(config.ControlEndpoint),
+			  TelemetryEndpoint(config.TelemetryEndpoint),
+			  StartupVideoEnable(config.StartupVideoEnable)
+		{
+			ThrowIfError(TimeManager.AddTickable(ControlSocket), "adding control socket to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(TelemetrySocket), "adding telemetry socket to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(ControlServer), "adding control server to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(StartupSubscriber), "adding startup video subscriber to Time.Manager");
 
-            GrpcServer.RegisterService(LeaseServer);
-            GrpcServer.RegisterService(VideoSubscriptionServer);
-        }
+			GrpcServer.RegisterService(LeaseServer);
+			GrpcServer.RegisterService(VideoSubscriptionServer);
+		}
 
-        LoggerFactory LoggingFactory;
-        Lease::InMemory::Manager LeaseManager;
-        ::PiSubmarine::Grpc::Server::Server GrpcServer;
-        Lease::Server::Grpc::Adapter LeaseServer;
-        Video::Server::GStreamer::Controller VideoController;
-        Video::Subscription::Grpc::Server::Adapter VideoSubscriptionServer;
-        StartupVideoSubscriber StartupSubscriber;
+		LoggerFactory LoggingFactory;
+		Lease::InMemory::Manager LeaseManager;
+		::PiSubmarine::Grpc::Server::Server GrpcServer;
+		Lease::Server::Grpc::Adapter LeaseServer;
+		Video::Server::GStreamer::Controller VideoController;
+		Video::Subscription::Grpc::Server::Adapter VideoSubscriptionServer;
+		StartupVideoSubscriber StartupSubscriber;
 
-        Udp::Asio::Socket ControlSocket;
-        Udp::Asio::Socket TelemetrySocket;
-        Security::Aead::Openssl::Provider ControlAeadProvider;
-        Security::Aead::Openssl::Provider TelemetryAeadProvider;
-        Security::Nonce::Openssl::Provider TelemetryNonceProvider;
+		Udp::Asio::Socket ControlSocket;
+		Udp::Asio::Socket TelemetrySocket;
+		Security::Aead::Openssl::Provider ControlAeadProvider;
+		Security::Aead::Openssl::Provider TelemetryAeadProvider;
+		Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
-        HorizontalController m_HorizontalController;
-        VerticalController m_VerticalController;
-        GimbalController m_GimbalController;
-        LampController m_LampController;
+		HorizontalController m_HorizontalController;
+		VerticalController m_VerticalController;
+		GimbalController m_GimbalController;
+		LampController m_LampController;
 
-        BatteryProvider m_BatteryProvider;
-        MotorProvider m_FrontLeftThruster;
-        MotorProvider m_FrontRightThruster;
-        MotorProvider m_RearLeftThruster;
-        MotorProvider m_RearRightThruster;
+		BatteryProvider m_BatteryProvider;
+		MotorProvider m_FrontLeftThruster;
+		MotorProvider m_FrontRightThruster;
+		MotorProvider m_RearLeftThruster;
+		MotorProvider m_RearRightThruster;
 
-        Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
-        Motor::Telemetry::Protobuf::Serializer FrontLeftMotorTelemetrySerializer;
-        Motor::Telemetry::Protobuf::Serializer FrontRightMotorTelemetrySerializer;
-        Motor::Telemetry::Protobuf::Serializer RearLeftMotorTelemetrySerializer;
-        Motor::Telemetry::Protobuf::Serializer RearRightMotorTelemetrySerializer;
-        Telemetry::Server::Udp::Server::Sources TelemetrySources;
-        Control::Pilot::Manual::Controller ManualPilot;
-        Control::Pilot::Dummy::Controller HoldPositionPilot;
-        Control::Engine ControlEngine;
-        Control::Protobuf::Deserializer ControlDeserializer;
-        Control::Server::Udp::Server ControlServer;
-        Telemetry::Server::Udp::Server TelemetryServer;
-        Time::Manager TimeManager;
+		Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
+		Motor::Telemetry::Protobuf::Serializer FrontLeftMotorTelemetrySerializer;
+		Motor::Telemetry::Protobuf::Serializer FrontRightMotorTelemetrySerializer;
+		Motor::Telemetry::Protobuf::Serializer RearLeftMotorTelemetrySerializer;
+		Motor::Telemetry::Protobuf::Serializer RearRightMotorTelemetrySerializer;
+		Telemetry::Server::Udp::Server::Sources TelemetrySources;
+		Control::Pilot::Manual::Controller ManualPilot;
+		Control::Pilot::Dummy::Controller HoldPositionPilot;
+		Control::Engine ControlEngine;
+		Control::Protobuf::Deserializer ControlDeserializer;
+		Control::Server::Udp::Server ControlServer;
+		Telemetry::Server::Udp::Server TelemetryServer;
+		Time::Manager TimeManager;
 
-        Udp::Api::Endpoint ControlEndpoint;
-        Udp::Api::Endpoint TelemetryEndpoint;
-        bool StartupVideoEnable = false;
-        bool ControlSocketBound = false;
-        bool TelemetrySocketBound = false;
-    };
+		Udp::Api::Endpoint ControlEndpoint;
+		Udp::Api::Endpoint TelemetryEndpoint;
+		bool StartupVideoEnable = false;
+		bool ControlSocketBound = false;
+		bool TelemetrySocketBound = false;
+	};
 
-    Runtime::Runtime(const Config& config)
-        : m_Impl(std::make_unique<Impl>(config))
-    {
-    }
+	Runtime::Runtime(const Config& config)
+		: m_Impl(std::make_unique<Impl>(config))
+	{
+	}
 
-    Runtime::~Runtime()
-    {
-        Stop();
-    }
+	Runtime::~Runtime()
+	{
+		Stop();
+	}
 
-    Error::Api::Result<void> Runtime::Run()
-    {
-        if (m_IsRunning)
-        {
-            return std::unexpected(MakeRuntimeError(ErrorCode::AlreadyStarted));
-        }
+	Error::Api::Result<void> Runtime::Run()
+	{
+		if (m_IsRunning)
+		{
+			return std::unexpected(MakeRuntimeError(ErrorCode::AlreadyStarted));
+		}
 
-        const auto startResult = StartServices();
-        if (!startResult.has_value())
-        {
-            StopServices();
-            return startResult;
-        }
+		const auto startResult = StartServices();
+		if (!startResult.has_value())
+		{
+			StopServices();
+			return startResult;
+		}
 
-        m_IsRunning = true;
-        const auto runResult = m_Impl->TimeManager.Run();
-        m_IsRunning = false;
-        StopServices();
-        return runResult;
-    }
+		m_IsRunning = true;
+		const auto runResult = m_Impl->TimeManager.Run();
+		m_IsRunning = false;
+		StopServices();
+		return runResult;
+	}
 
-    void Runtime::Stop() noexcept
-    {
-        if (!m_Impl)
-        {
-            return;
-        }
+	void Runtime::Stop() noexcept
+	{
+		if (!m_Impl)
+		{
+			return;
+		}
 
-        m_Impl->TimeManager.Stop();
-        StopServices();
-        m_IsRunning = false;
-    }
+		m_Impl->TimeManager.Stop();
+		StopServices();
+		m_IsRunning = false;
+	}
 
-    bool Runtime::IsRunning() const noexcept
-    {
-        return m_IsRunning;
-    }
+	bool Runtime::IsRunning() const noexcept
+	{
+		return m_IsRunning;
+	}
 
-    Error::Api::Result<void> Runtime::StartServices()
-    {
-        if (!m_Impl->ControlSocketBound)
-        {
-            const auto bindResult = m_Impl->ControlSocket.Bind(m_Impl->ControlEndpoint);
-            if (!bindResult.has_value())
-            {
-                return std::unexpected(MakeRuntimeError(ErrorCode::ControlBindFailed));
-            }
+	Error::Api::Result<void> Runtime::StartServices()
+	{
+		if (!m_Impl->ControlSocketBound)
+		{
+			const auto bindResult = m_Impl->ControlSocket.Bind(m_Impl->ControlEndpoint);
+			if (!bindResult.has_value())
+			{
+				return std::unexpected(MakeRuntimeError(ErrorCode::ControlBindFailed));
+			}
 
-            m_Impl->ControlSocketBound = true;
-        }
+			m_Impl->ControlSocketBound = true;
+		}
 
-        if (!m_Impl->TelemetrySocketBound)
-        {
-            const auto bindResult = m_Impl->TelemetrySocket.Bind(m_Impl->TelemetryEndpoint);
-            if (!bindResult.has_value())
-            {
-                return std::unexpected(MakeRuntimeError(ErrorCode::TelemetryBindFailed));
-            }
+		if (!m_Impl->TelemetrySocketBound)
+		{
+			const auto bindResult = m_Impl->TelemetrySocket.Bind(m_Impl->TelemetryEndpoint);
+			if (!bindResult.has_value())
+			{
+				return std::unexpected(MakeRuntimeError(ErrorCode::TelemetryBindFailed));
+			}
 
-            m_Impl->TelemetrySocketBound = true;
-        }
+			m_Impl->TelemetrySocketBound = true;
+		}
 
-        const auto grpcStartResult = m_Impl->GrpcServer.Start();
-        if (!grpcStartResult.has_value())
-        {
-            return std::unexpected(MakeRuntimeError(ErrorCode::GrpcServerStartFailed));
-        }
+		const auto grpcStartResult = m_Impl->GrpcServer.Start();
+		if (!grpcStartResult.has_value())
+		{
+			return std::unexpected(MakeRuntimeError(ErrorCode::GrpcServerStartFailed));
+		}
 
-        if (m_Impl->StartupVideoEnable)
-        {
-            const auto controlLeaseResult = m_Impl->LeaseManager.AcquireLease(Lease::Api::LeaseRequest{
-                .Resource = MakeControlResourceId()});
-            if (!controlLeaseResult.has_value())
-            {
-                return std::unexpected(controlLeaseResult.error());
-            }
+		if (m_Impl->StartupVideoEnable)
+		{
+			const auto controlLeaseResult = m_Impl->LeaseManager.AcquireLease(Lease::Api::LeaseRequest{
+				.Resource = MakeControlResourceId()
+			});
+			if (!controlLeaseResult.has_value())
+			{
+				return std::unexpected(controlLeaseResult.error());
+			}
 
-            const auto controlLeaseId = controlLeaseResult->Lease.Id;
-            const auto submitResult = m_Impl->ControlEngine.Submit(Control::Api::Input::OperatorCommand{
-                .LeaseId = controlLeaseId,
-                .VideoControl = Control::Video::Api::Command::Enable(
-                    Control::Video::Api::StreamProfile::LowLatency,
-                    Control::Video::Api::AutoFocus{})});
-            const auto releaseResult = m_Impl->LeaseManager.ReleaseLease(controlLeaseId);
+			const auto controlLeaseId = controlLeaseResult->Lease.Id;
+			const auto submitResult = m_Impl->ControlEngine.Submit(Control::Api::Input::OperatorCommand{
+				.LeaseId = controlLeaseId,
+				.VideoControl = Control::Video::Api::Command::Enable(
+					Control::Video::Api::StreamProfile::LowLatency,
+					Control::Video::Api::AutoFocus{})
+			});
+			const auto releaseResult = m_Impl->LeaseManager.ReleaseLease(controlLeaseId);
 
-            if (!submitResult.has_value())
-            {
-                return std::unexpected(submitResult.error());
-            }
+			if (!submitResult.has_value())
+			{
+				return std::unexpected(submitResult.error());
+			}
 
-            if (!releaseResult.has_value())
-            {
-                return std::unexpected(releaseResult.error());
-            }
-        }
+			if (!releaseResult.has_value())
+			{
+				return std::unexpected(releaseResult.error());
+			}
+		}
 
-        const auto startupVideoSubscriptionResult = m_Impl->StartupSubscriber.Start();
-        if (!startupVideoSubscriptionResult.has_value())
-        {
-            return std::unexpected(MakeRuntimeError(ErrorCode::StartupVideoSubscriptionFailed));
-        }
+		const auto startupVideoSubscriptionResult = m_Impl->StartupSubscriber.Start();
+		if (!startupVideoSubscriptionResult.has_value())
+		{
+			return std::unexpected(MakeRuntimeError(ErrorCode::StartupVideoSubscriptionFailed));
+		}
 
-        return {};
-    }
+		return {};
+	}
 
-    void Runtime::StopServices()
-    {
-        if (!m_Impl)
-        {
-            return;
-        }
+	void Runtime::StopServices()
+	{
+		if (!m_Impl)
+		{
+			return;
+		}
 
-        m_Impl->StartupSubscriber.Stop();
-        m_Impl->GrpcServer.Stop();
-    }
+		m_Impl->StartupSubscriber.Stop();
+		m_Impl->GrpcServer.Stop();
+	}
 
-    Error::Api::Error Runtime::MakeRuntimeError(const ErrorCode code) noexcept
-    {
-        return MakeCommunicationError(code);
-    }
+	Error::Api::Error Runtime::MakeRuntimeError(const ErrorCode code) noexcept
+	{
+		return MakeCommunicationError(code);
+	}
 
-    void Runtime::ThrowIfError(const Error::Api::Result<void>& result, const char* action)
-    {
-        if (!result.has_value())
-        {
-            throw std::runtime_error(std::string("Drone.Server.Fake runtime failed while ") + action);
-        }
-    }
+	void Runtime::ThrowIfError(const Error::Api::Result<void>& result, const char* action)
+	{
+		if (!result.has_value())
+		{
+			throw std::runtime_error(std::string("Drone.Server.Fake runtime failed while ") + action);
+		}
+	}
 }
