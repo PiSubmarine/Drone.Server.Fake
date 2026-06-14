@@ -267,6 +267,7 @@ namespace PiSubmarine::Drone::Server::Fake
                 LoggingFactory)
             , ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
             , TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize)
+            , ControlAeadProvider()
             , TelemetryAeadProvider()
             , TelemetryNonceProvider()
             , BatteryTelemetrySerializer(m_BatteryProvider)
@@ -296,9 +297,12 @@ namespace PiSubmarine::Drone::Server::Fake
             , ControlServer(
                 ControlEngine,
                 ControlDeserializer,
+                LeaseManager,
+                ControlAeadProvider,
                 ControlSocket)
             , TelemetryServer(
                 TelemetrySources,
+                LeaseManager,
                 LeaseManager,
                 LeaseManager,
                 TelemetryAeadProvider,
@@ -332,6 +336,7 @@ namespace PiSubmarine::Drone::Server::Fake
 
         Udp::Asio::Socket ControlSocket;
         Udp::Asio::Socket TelemetrySocket;
+        Security::Aead::Openssl::Provider ControlAeadProvider;
         Security::Aead::Openssl::Provider TelemetryAeadProvider;
         Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
