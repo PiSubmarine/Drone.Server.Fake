@@ -17,5 +17,12 @@ include("${pisubmarinebuild_SOURCE_DIR}/PiSubmarine.Build.CMake.cmake")
 
 PiSubmarineInitModule("PiSubmarine.Drone.Server.Fake")
 project(${PISUBMARINE_MODULE_NAME})
-enable_testing()
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Gstreamer.Build.git" "main")
 PiSubmarineConfigureModule()
+
+enable_testing()
+
+if(TARGET ${PISUBMARINE_MODULE_NAME}.App)
+    PiSubmarineGstreamerFinalizeCompositionRoot(${PISUBMARINE_MODULE_NAME}.App)
+endif()
