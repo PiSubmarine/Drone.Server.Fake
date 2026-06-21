@@ -338,6 +338,15 @@ namespace PiSubmarine::Drone::Server::Fake
 			ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_BallastProvider), "adding ballast provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_BatteryProvider), "adding battery provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_DepthProvider), "adding depth provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_LampController), "adding lamp controller to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_FrontLeftThruster), "adding front-left motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_FrontRightThruster), "adding front-right motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_ProximityProvider), "adding proximity provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_RearLeftThruster), "adding rear-left motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_RearRightThruster), "adding rear-right motor provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(StartupSubscriber), "adding startup video subscriber to Time.Manager");
 
 			GrpcServer.RegisterService(LeaseServer);
