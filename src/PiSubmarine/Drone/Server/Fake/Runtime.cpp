@@ -44,6 +44,7 @@
 #include "PiSubmarine/Telemetry/Server/Udp/Server.h"
 #include "PiSubmarine/Time/Manager.h"
 #include "PiSubmarine/Time/ITickable.h"
+#include "PiSubmarine/Time/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Udp/Asio/Socket.h"
 #include "PiSubmarine/Video/Server/GStreamer/Controller.h"
 #include "PiSubmarine/Video/Telemetry/Protobuf/Serializer.h"
@@ -288,6 +289,7 @@ namespace PiSubmarine::Drone::Server::Fake
 			  ProximityTelemetrySerializer(m_ProximityProvider),
 			  RearLeftMotorTelemetrySerializer(m_RearLeftThruster),
 			  RearRightMotorTelemetrySerializer(m_RearRightThruster),
+			  TimeTelemetrySerializer(TimeManager),
 			  VideoTelemetrySerializer(VideoController),
 			  TelemetrySources({
 				  {MakeChannelId(Telemetry::Channels::Api::BallastMain), &BallastTelemetrySerializer},
@@ -299,6 +301,7 @@ namespace PiSubmarine::Drone::Server::Fake
 				  {MakeChannelId(Telemetry::Channels::Api::MotorRearLeft), &RearLeftMotorTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::MotorRearRight), &RearRightMotorTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::ProximityMain), &ProximityTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::TimeMain), &TimeTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::VideoMain), &VideoTelemetrySerializer}
 			  }),
 			  ManualPilot(
@@ -390,6 +393,8 @@ namespace PiSubmarine::Drone::Server::Fake
 		Proximity::Telemetry::Protobuf::Serializer ProximityTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer RearLeftMotorTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer RearRightMotorTelemetrySerializer;
+		Time::Manager TimeManager;
+		Time::Telemetry::Protobuf::Serializer TimeTelemetrySerializer;
 		Video::Telemetry::Protobuf::Serializer VideoTelemetrySerializer;
 		Telemetry::Server::Udp::Server::Sources TelemetrySources;
 		Control::Pilot::Manual::Controller ManualPilot;
@@ -398,7 +403,6 @@ namespace PiSubmarine::Drone::Server::Fake
 		Control::Protobuf::Deserializer ControlDeserializer;
 		Control::Server::Udp::Server ControlServer;
 		Telemetry::Server::Udp::Server TelemetryServer;
-		Time::Manager TimeManager;
 
 		Udp::Api::Endpoint ControlEndpoint;
 		Udp::Api::Endpoint TelemetryEndpoint;
