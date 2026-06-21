@@ -121,6 +121,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Time.Tickabl
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Time.Manager.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Time.Manager)
 
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Time.Telemetry.Protobuf.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Time.Telemetry.Protobuf)
+
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Udp.Asio.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Udp.Asio)
 

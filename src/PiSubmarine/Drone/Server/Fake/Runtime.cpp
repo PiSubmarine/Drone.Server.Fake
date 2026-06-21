@@ -289,6 +289,7 @@ namespace PiSubmarine::Drone::Server::Fake
 			  ProximityTelemetrySerializer(m_ProximityProvider),
 			  RearLeftMotorTelemetrySerializer(m_RearLeftThruster),
 			  RearRightMotorTelemetrySerializer(m_RearRightThruster),
+			  TimeManager(config.TickPeriod),
 			  TimeTelemetrySerializer(TimeManager),
 			  VideoTelemetrySerializer(VideoController),
 			  TelemetrySources({
@@ -330,7 +331,6 @@ namespace PiSubmarine::Drone::Server::Fake
 				  TelemetryNonceProvider,
 				  TelemetrySocket,
 				  TelemetrySocket),
-			  TimeManager(config.TickPeriod),
 			  ControlEndpoint(config.ControlEndpoint),
 			  TelemetryEndpoint(config.TelemetryEndpoint),
 			  StartupVideoEnable(config.StartupVideoEnable)
