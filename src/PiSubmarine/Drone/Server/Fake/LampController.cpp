@@ -7,4 +7,10 @@ namespace PiSubmarine::Drone::Server::Fake
         m_Target = target;
         return {};
     }
+
+    Error::Api::Result<Lamp::Telemetry::Api::Status> LampController::GetStatus() const
+    {
+        return Lamp::Telemetry::Api::Status{
+            .IsActive = static_cast<double>(m_Target.Intensity()) > 0.0};
+    }
 }

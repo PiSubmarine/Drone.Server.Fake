@@ -5,8 +5,8 @@
       "name": "windows-msvc-base",
       "hidden": true,
       "generator": "Ninja",
-      "binaryDir": "C:/t/b",
-      "installDir": "C:/t/i",
+      "binaryDir": "C:/b6",
+      "installDir": "C:/b6",
       "cacheVariables": {
         "CMAKE_C_COMPILER": "cl.exe",
         "CMAKE_CXX_COMPILER": "cl.exe",

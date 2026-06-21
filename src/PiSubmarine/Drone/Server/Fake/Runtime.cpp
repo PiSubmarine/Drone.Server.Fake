@@ -14,13 +14,18 @@
 #include "PiSubmarine/Control/Protobuf/Deserializer.h"
 #include "PiSubmarine/Control/Server/Udp/Server.h"
 #include "PiSubmarine/Control/Video/Api/Command.h"
+#include "PiSubmarine/Ballast/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Battery/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Depth/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/DepthProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/GimbalController.h"
 #include "PiSubmarine/Drone/Server/Fake/HorizontalController.h"
 #include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
 #include "PiSubmarine/Drone/Server/Fake/MotorProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
@@ -30,14 +35,18 @@
 #include "PiSubmarine/Lease/Api/LeaseRequest.h"
 #include "PiSubmarine/Lease/InMemory/Manager.h"
 #include "PiSubmarine/Lease/Server/Grpc/Adapter.h"
+#include "PiSubmarine/Lamp/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Motor/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Proximity/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Security/Aead/Openssl/Provider.h"
 #include "PiSubmarine/Security/Nonce/Openssl/Provider.h"
+#include "PiSubmarine/Telemetry/Channels/Api/Channels.h"
 #include "PiSubmarine/Telemetry/Server/Udp/Server.h"
 #include "PiSubmarine/Time/Manager.h"
 #include "PiSubmarine/Time/ITickable.h"
 #include "PiSubmarine/Udp/Asio/Socket.h"
 #include "PiSubmarine/Video/Server/GStreamer/Controller.h"
+#include "PiSubmarine/Video/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Video/Subscription/Api/IService.h"
 #include "PiSubmarine/Video/Subscription/Api/SubscribeRequest.h"
 #include "PiSubmarine/Video/Subscription/Api/UnsubscribeRequest.h"
@@ -48,11 +57,11 @@ namespace PiSubmarine::Drone::Server::Fake
 	namespace
 	{
 		constexpr std::string_view ControlResourceIdValue = "control-main";
-		constexpr std::string_view BatteryChannelIdValue = "battery.main";
-		constexpr std::string_view FrontLeftMotorChannelIdValue = "motor.front-left";
-		constexpr std::string_view FrontRightMotorChannelIdValue = "motor.front-right";
-		constexpr std::string_view RearLeftMotorChannelIdValue = "motor.rear-left";
-		constexpr std::string_view RearRightMotorChannelIdValue = "motor.rear-right";
+
+		[[nodiscard]] Telemetry::Api::ChannelId MakeChannelId(const std::string_view value)
+		{
+			return Telemetry::Api::ChannelId{.Value = std::string(value)};
+		}
 
 		[[nodiscard]] Error::Api::Error MakeCommunicationError(const ErrorCode code) noexcept
 		{
@@ -270,29 +279,27 @@ namespace PiSubmarine::Drone::Server::Fake
 				  LoggingFactory),
 			  ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
 			  TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
+			  BallastTelemetrySerializer(m_BallastProvider),
 			  BatteryTelemetrySerializer(m_BatteryProvider),
+			  DepthTelemetrySerializer(m_DepthProvider),
+			  LampTelemetrySerializer(m_LampController),
 			  FrontLeftMotorTelemetrySerializer(m_FrontLeftThruster),
 			  FrontRightMotorTelemetrySerializer(m_FrontRightThruster),
+			  ProximityTelemetrySerializer(m_ProximityProvider),
 			  RearLeftMotorTelemetrySerializer(m_RearLeftThruster),
 			  RearRightMotorTelemetrySerializer(m_RearRightThruster),
+			  VideoTelemetrySerializer(VideoController),
 			  TelemetrySources({
-				  {Telemetry::Api::ChannelId{.Value = std::string(BatteryChannelIdValue)}, &BatteryTelemetrySerializer},
-				  {
-					  Telemetry::Api::ChannelId{.Value = std::string(FrontLeftMotorChannelIdValue)},
-					  &FrontLeftMotorTelemetrySerializer
-				  },
-				  {
-					  Telemetry::Api::ChannelId{.Value = std::string(FrontRightMotorChannelIdValue)},
-					  &FrontRightMotorTelemetrySerializer
-				  },
-				  {
-					  Telemetry::Api::ChannelId{.Value = std::string(RearLeftMotorChannelIdValue)},
-					  &RearLeftMotorTelemetrySerializer
-				  },
-				  {
-					  Telemetry::Api::ChannelId{.Value = std::string(RearRightMotorChannelIdValue)},
-					  &RearRightMotorTelemetrySerializer
-				  }
+				  {MakeChannelId(Telemetry::Channels::Api::BallastMain), &BallastTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::BatteryMain), &BatteryTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::DepthMain), &DepthTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::LampMain), &LampTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::MotorFrontLeft), &FrontLeftMotorTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::MotorFrontRight), &FrontRightMotorTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::MotorRearLeft), &RearLeftMotorTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::MotorRearRight), &RearRightMotorTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::ProximityMain), &ProximityTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::VideoMain), &VideoTelemetrySerializer}
 			  }),
 			  ManualPilot(
 				  m_HorizontalController,
@@ -356,17 +363,25 @@ namespace PiSubmarine::Drone::Server::Fake
 		GimbalController m_GimbalController;
 		LampController m_LampController;
 
+		BallastProvider m_BallastProvider;
 		BatteryProvider m_BatteryProvider;
+		DepthProvider m_DepthProvider;
 		MotorProvider m_FrontLeftThruster;
 		MotorProvider m_FrontRightThruster;
+		ProximityProvider m_ProximityProvider;
 		MotorProvider m_RearLeftThruster;
 		MotorProvider m_RearRightThruster;
 
+		Ballast::Telemetry::Protobuf::Serializer BallastTelemetrySerializer;
 		Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
+		Depth::Telemetry::Protobuf::Serializer DepthTelemetrySerializer;
+		Lamp::Telemetry::Protobuf::Serializer LampTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer FrontLeftMotorTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer FrontRightMotorTelemetrySerializer;
+		Proximity::Telemetry::Protobuf::Serializer ProximityTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer RearLeftMotorTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer RearRightMotorTelemetrySerializer;
+		Video::Telemetry::Protobuf::Serializer VideoTelemetrySerializer;
 		Telemetry::Server::Udp::Server::Sources TelemetrySources;
 		Control::Pilot::Manual::Controller ManualPilot;
 		Control::Pilot::Dummy::Controller HoldPositionPilot;
