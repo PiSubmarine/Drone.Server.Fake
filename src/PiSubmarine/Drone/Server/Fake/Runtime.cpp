@@ -180,7 +180,7 @@ namespace PiSubmarine::Drone::Server::Fake
 					return std::unexpected(acquireResult.error());
 				}
 
-				const auto acquiredLease = acquireResult->Lease;
+				const auto acquiredLease = acquireResult->GrantedLease;
 				const auto subscribeResult = m_VideoService.Subscribe(
 					Video::Subscription::Api::SubscribeRequest{
 						.LeaseId = acquiredLease.Id,
@@ -499,7 +499,7 @@ namespace PiSubmarine::Drone::Server::Fake
 				return std::unexpected(controlLeaseResult.error());
 			}
 
-			const auto controlLeaseId = controlLeaseResult->Lease.Id;
+			const auto controlLeaseId = controlLeaseResult->GrantedLease.Id;
 			const auto submitResult = m_Impl->ControlEngine.Submit(Control::Api::Input::OperatorCommand{
 				.LeaseId = controlLeaseId,
 				.VideoControl = Control::Video::Api::Command::Enable(
