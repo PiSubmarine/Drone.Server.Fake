@@ -14,7 +14,7 @@ namespace PiSubmarine::Drone::Server::Fake
         controller.Tick(std::chrono::seconds(0), std::chrono::seconds(0));
         const auto initial = controller.GetStatus();
         ASSERT_TRUE(initial.has_value());
-        EXPECT_TRUE(initial->IsActive);
+        EXPECT_EQ(initial->Intensity, NormalizedFraction{0.7});
 
         controller.Tick(std::chrono::seconds(2), std::chrono::seconds(2));
         const auto warning = controller.GetStatus();
