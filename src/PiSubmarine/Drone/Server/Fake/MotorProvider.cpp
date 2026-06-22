@@ -15,7 +15,9 @@ namespace PiSubmarine::Drone::Server::Fake
             m_State = Motor::Telemetry::Api::State{
                 .Operational = Motor::Telemetry::Api::OperationalState::Operational,
                 .ActiveFaults = static_cast<Motor::Telemetry::Api::Faults>(0),
-                .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0)};
+                .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0),
+                .Direction = Motor::Telemetry::Api::DriveDirection::Forward,
+                .DriveEffort = NormalizedFraction{0.65}};
             return;
         }
 
@@ -24,13 +26,17 @@ namespace PiSubmarine::Drone::Server::Fake
             m_State = Motor::Telemetry::Api::State{
                 .Operational = Motor::Telemetry::Api::OperationalState::Degraded,
                 .ActiveFaults = static_cast<Motor::Telemetry::Api::Faults>(0),
-                .ActiveWarnings = Motor::Telemetry::Api::Warnings::Temperature};
+                .ActiveWarnings = Motor::Telemetry::Api::Warnings::Temperature,
+                .Direction = Motor::Telemetry::Api::DriveDirection::Forward,
+                .DriveEffort = NormalizedFraction{0.35}};
             return;
         }
 
         m_State = Motor::Telemetry::Api::State{
             .Operational = Motor::Telemetry::Api::OperationalState::Faulted,
             .ActiveFaults = Motor::Telemetry::Api::Faults::Overcurrent,
-            .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0)};
+            .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0),
+            .Direction = Motor::Telemetry::Api::DriveDirection::Idle,
+            .DriveEffort = NormalizedFraction{0}};
     }
 }

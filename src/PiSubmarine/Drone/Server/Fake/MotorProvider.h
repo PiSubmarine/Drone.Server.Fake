@@ -17,6 +17,8 @@ namespace PiSubmarine::Drone::Server::Fake
         Motor::Telemetry::Api::State m_State{
             .Operational = Motor::Telemetry::Api::OperationalState::Operational,
             .ActiveFaults = static_cast<Motor::Telemetry::Api::Faults>(0),
-            .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0)};
+            .ActiveWarnings = static_cast<Motor::Telemetry::Api::Warnings>(0),
+            .Direction = Motor::Telemetry::Api::DriveDirection::Idle,
+            .DriveEffort = NormalizedFraction{0}};
     };
 }

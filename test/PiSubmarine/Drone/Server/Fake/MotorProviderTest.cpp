@@ -23,5 +23,9 @@ namespace PiSubmarine::Drone::Server::Fake
         EXPECT_NE(*degraded, *faulted);
         EXPECT_EQ(degraded->Operational, Motor::Telemetry::Api::OperationalState::Degraded);
         EXPECT_EQ(faulted->Operational, Motor::Telemetry::Api::OperationalState::Faulted);
+        EXPECT_EQ(initial->Direction, Motor::Telemetry::Api::DriveDirection::Forward);
+        EXPECT_EQ(initial->DriveEffort, NormalizedFraction(0.65));
+        EXPECT_EQ(faulted->Direction, Motor::Telemetry::Api::DriveDirection::Idle);
+        EXPECT_EQ(faulted->DriveEffort, NormalizedFraction(0));
     }
 }
