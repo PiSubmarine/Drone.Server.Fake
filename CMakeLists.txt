@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.25)
+cmake_minimum_required(VERSION 3.30)
+
+cmake_policy(SET CMP0168 NEW)
 
 include(FetchContent)
 

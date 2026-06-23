@@ -10,10 +10,11 @@ add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/HorizontalController.cpp
         PiSubmarine/Drone/Server/Fake/LampController.cpp
         PiSubmarine/Drone/Server/Fake/LoggerFactory.cpp
-        PiSubmarine/Drone/Server/Fake/MotorProvider.cpp
         PiSubmarine/Drone/Server/Fake/ProximityProvider.cpp
         PiSubmarine/Drone/Server/Fake/VerticalController.cpp
-        PiSubmarine/Drone/Server/Fake/Runtime.cpp)
+        PiSubmarine/Drone/Server/Fake/Runtime.cpp
+        PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.cpp
+        PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h)
 target_include_directories(${PISUBMARINE_MODULE_NAME}
         PUBLIC "../public"
         PRIVATE "./")
@@ -42,6 +43,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Pilo
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Horizontal.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Horizontal.Api)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Horizontal.FourJetDifferential.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Horizontal.FourJetDifferential)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Vertical.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vertical.Api)

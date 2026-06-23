@@ -24,7 +24,7 @@
 #include "PiSubmarine/Drone/Server/Fake/HorizontalController.h"
 #include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
-#include "PiSubmarine/Drone/Server/Fake/MotorProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
@@ -52,6 +52,7 @@
 #include "PiSubmarine/Video/Subscription/Api/SubscribeRequest.h"
 #include "PiSubmarine/Video/Subscription/Api/UnsubscribeRequest.h"
 #include "PiSubmarine/Video/Subscription/Grpc/Server/Adapter.h"
+#include "PiSubmarine/Control/Horizontal/FourJetDifferential/Controller.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
@@ -305,6 +306,8 @@ namespace PiSubmarine::Drone::Server::Fake
 				  {MakeChannelId(Telemetry::Channels::Api::TimeMain), &TimeTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::VideoMain), &VideoTelemetrySerializer}
 			  }),
+			  m_HorizontalController(m_FrontLeftThruster, m_FrontRightThruster, m_RearLeftThruster,
+			                         m_RearRightThruster),
 			  ManualPilot(
 				  m_HorizontalController,
 				  m_VerticalController,
@@ -345,11 +348,15 @@ namespace PiSubmarine::Drone::Server::Fake
 			ThrowIfError(TimeManager.AddTickable(m_BatteryProvider), "adding battery provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_DepthProvider), "adding depth provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_LampController), "adding lamp controller to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_FrontLeftThruster), "adding front-left motor provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_FrontRightThruster), "adding front-right motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_FrontLeftThruster),
+			             "adding front-left motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_FrontRightThruster),
+			             "adding front-right motor provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_ProximityProvider), "adding proximity provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_RearLeftThruster), "adding rear-left motor provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_RearRightThruster), "adding rear-right motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_RearLeftThruster),
+			             "adding rear-left motor provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_RearRightThruster),
+			             "adding rear-right motor provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(StartupSubscriber), "adding startup video subscriber to Time.Manager");
 
 			GrpcServer.RegisterService(LeaseServer);
@@ -370,7 +377,7 @@ namespace PiSubmarine::Drone::Server::Fake
 		Security::Aead::Openssl::Provider TelemetryAeadProvider;
 		Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
-		HorizontalController m_HorizontalController;
+		PiSubmarine::Control::Horizontal::FourJetDifferential::Controller m_HorizontalController;
 		VerticalController m_VerticalController;
 		GimbalController m_GimbalController;
 		LampController m_LampController;
@@ -378,11 +385,12 @@ namespace PiSubmarine::Drone::Server::Fake
 		BallastProvider m_BallastProvider;
 		BatteryProvider m_BatteryProvider;
 		DepthProvider m_DepthProvider;
-		MotorProvider m_FrontLeftThruster;
-		MotorProvider m_FrontRightThruster;
+		UnidirectionalMotor m_FrontLeftThruster;
+		UnidirectionalMotor m_FrontRightThruster;
+		UnidirectionalMotor m_RearLeftThruster;
+		UnidirectionalMotor m_RearRightThruster;
+
 		ProximityProvider m_ProximityProvider;
-		MotorProvider m_RearLeftThruster;
-		MotorProvider m_RearRightThruster;
 
 		Ballast::Telemetry::Protobuf::Serializer BallastTelemetrySerializer;
 		Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
