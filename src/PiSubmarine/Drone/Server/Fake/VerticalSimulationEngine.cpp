@@ -33,6 +33,11 @@ namespace PiSubmarine::Drone::Server::Fake
             throw std::invalid_argument("Simulation ballast maximum mass must be non-negative.");
         }
 
+        if (m_Config.CargoMassKilograms < 0.0)
+        {
+            throw std::invalid_argument("Simulation cargo mass must be non-negative.");
+        }
+
         if (m_Config.SeaFloorDepth.Value < 0.0)
         {
             throw std::invalid_argument("Simulation sea floor depth must be non-negative.");
@@ -63,14 +68,27 @@ namespace PiSubmarine::Drone::Server::Fake
             return;
         }
 
+        if (m_DepthMeters <= 0.1 && m_HasCargo)
+        {
+            m_HasCargo = false;
+        }
+        if (m_DepthMeters >= m_Config.SeaFloorDepth.Value - 0.1 && !m_HasCargo)
+        {
+            m_HasCargo = true;
+        }
+
         const auto ballastPosition = GetBallastPosition();
         const auto ballastMassKilograms = m_Config.BallastMaximumMassKilograms * ballastPosition;
+        const auto cargoMassKilograms = GetActiveCargoMassKilograms();
         const auto equilibriumBallastMassKilograms =
             m_Config.BallastMaximumMassKilograms * static_cast<double>(m_Config.EquilibriumBallastPosition);
         const auto buoyancyOffsetForceNewtons =
-            (ballastMassKilograms - equilibriumBallastMassKilograms) * GravityMetersPerSecondSquared;
+            (ballastMassKilograms + cargoMassKilograms - equilibriumBallastMassKilograms) *
+            GravityMetersPerSecondSquared;
+        const auto totalMassKilograms =
+            m_Config.DroneMassKilograms + ballastMassKilograms + cargoMassKilograms;
         const auto accelerationMetersPerSecondSquared =
-            (buoyancyOffsetForceNewtons / m_Config.DroneMassKilograms) -
+            (buoyancyOffsetForceNewtons / totalMassKilograms) -
             (m_Config.FrictionCoefficient * m_VerticalSpeedMetersPerSecond);
 
         m_VerticalSpeedMetersPerSecond += accelerationMetersPerSecondSquared * deltaSeconds;
@@ -87,6 +105,11 @@ namespace PiSubmarine::Drone::Server::Fake
         }
 
         return static_cast<double>(*ballastState->Position);
+    }
+
+    double VerticalSimulationEngine::GetActiveCargoMassKilograms() const noexcept
+    {
+        return m_HasCargo ? m_Config.CargoMassKilograms : 0.0;
     }
 
     void VerticalSimulationEngine::ClampToPhysicalBounds() noexcept

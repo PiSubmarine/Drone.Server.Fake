@@ -16,6 +16,7 @@ namespace PiSubmarine::Drone::Server::Fake
         Ballast::BallastFillFraction EquilibriumBallastPosition = Ballast::BallastFillFraction{NormalizedFraction{0.5}};
         Meters InitialDepth = 1.0_m;
         Meters SeaFloorDepth = 25.0_m;
+        double CargoMassKilograms = 0.1;
     };
 
     class VerticalSimulationEngine final : public Time::ITickable
@@ -31,11 +32,14 @@ namespace PiSubmarine::Drone::Server::Fake
 
     private:
         [[nodiscard]] double GetBallastPosition() const;
+        [[nodiscard]] double GetActiveCargoMassKilograms() const noexcept;
         void ClampToPhysicalBounds() noexcept;
 
         Ballast::Telemetry::Api::IProvider& m_BallastProvider;
         VerticalSimulationConfig m_Config;
         double m_DepthMeters;
         double m_VerticalSpeedMetersPerSecond = 0.0;
+
+        bool m_HasCargo = false;
     };
 }
