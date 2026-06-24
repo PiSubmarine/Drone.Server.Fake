@@ -7,6 +7,7 @@
 #include <spdlog/logger.h>
 #include <spdlog/spdlog.h>
 
+#include "PiSubmarine/Ballast/Pid/Controller.h"
 #include "PiSubmarine/Control/Api/Input/OperatorCommand.h"
 #include "PiSubmarine/Control/Engine.h"
 #include "PiSubmarine/Control/Pilot/Dummy/Controller.h"
@@ -17,16 +18,18 @@
 #include "PiSubmarine/Ballast/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Battery/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Depth/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Drone/Server/Fake/BallastActuator.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/DepthProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/GimbalController.h"
 #include "PiSubmarine/Drone/Server/Fake/HorizontalController.h"
 #include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
 #include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
+#include "PiSubmarine/Control/Vertical/Ballast/Controller.h"
 #include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
-#include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
@@ -282,14 +285,22 @@ namespace PiSubmarine::Drone::Server::Fake
 				  LoggingFactory),
 			  ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
 			  TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
-			  m_BallastProvider(config.Simulation.EquilibriumBallastPosition),
+			  m_BallastProvider(Ballast::BallastFillFraction::Empty()),
+			  m_BallastMotor(),
+			  m_BallastActuator(m_BallastMotor, m_BallastProvider),
+			  m_BallastController(
+				  m_BallastMotor,
+				  m_BallastProvider,
+				  Ballast::Pid::Controller::Config{},
+				  Ballast::BallastFillFraction::Empty()),
 			  m_VerticalSimulation(m_BallastProvider, VerticalSimulationConfig{
-				  .DroneMassKilograms = config.Simulation.DroneMassKilograms,
-				  .FrictionCoefficient = config.Simulation.FrictionCoefficient,
-				  .BallastMaximumMassKilograms = config.Simulation.BallastMaximumMassKilograms,
-				  .EquilibriumBallastPosition = config.Simulation.EquilibriumBallastPosition,
-				  .InitialDepth = config.Simulation.InitialDepth,
-				  .SeaFloorDepth = config.Simulation.SeaFloorDepth}),
+				                       .DroneMassKilograms = config.Simulation.DroneMassKilograms,
+				                       .FrictionCoefficient = config.Simulation.FrictionCoefficient,
+				                       .BallastMaximumMassKilograms = config.Simulation.BallastMaximumMassKilograms,
+				                       .EquilibriumBallastPosition = config.Simulation.EquilibriumBallastPosition,
+				                       .InitialDepth = config.Simulation.InitialDepth,
+				                       .SeaFloorDepth = config.Simulation.SeaFloorDepth
+			                       }),
 			  m_DepthProvider(m_VerticalSimulation),
 			  m_ProximityProvider(m_VerticalSimulation),
 			  BallastTelemetrySerializer(m_BallastProvider),
@@ -319,7 +330,19 @@ namespace PiSubmarine::Drone::Server::Fake
 			  }),
 			  m_HorizontalController(m_FrontLeftThruster, m_FrontRightThruster, m_RearLeftThruster,
 			                         m_RearRightThruster),
-			  m_VerticalController(m_BallastProvider),
+			  m_VerticalController(
+				  m_BallastController,
+				  m_BallastProvider,
+				  m_DepthProvider,
+				  Control::Vertical::Ballast::Controller::Config{
+					  .ProportionalGain = 0.01,
+					  .IntegralGainPerSecond = 0,
+					  .DerivativeGainSeconds = 10,
+					  .IntegralLimitMetersSeconds = 50.0,
+					  .DepthDeadband = 0.05_m,
+					  .MaximumBallastCorrection = NormalizedFraction{0.5}
+				  }
+			  ),
 			  ManualPilot(
 				  m_HorizontalController,
 				  m_VerticalController,
@@ -354,10 +377,13 @@ namespace PiSubmarine::Drone::Server::Fake
 			ThrowIfError(TimeManager.AddTickable(TelemetrySocket), "adding telemetry socket to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(ControlServer), "adding control server to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_VerticalController), "adding vertical controller to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_BallastController), "adding ballast controller to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_BallastActuator), "adding ballast actuator to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_VerticalSimulation), "adding vertical simulation to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_BatteryProvider), "adding battery provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_VerticalSimulation), "adding vertical simulation to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_LampController), "adding lamp controller to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_FrontLeftThruster),
 			             "adding front-left motor provider to Time.Manager");
@@ -388,6 +414,9 @@ namespace PiSubmarine::Drone::Server::Fake
 		Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
 		BallastProvider m_BallastProvider;
+		BidirectionalMotor m_BallastMotor;
+		BallastActuator m_BallastActuator;
+		Ballast::Pid::Controller m_BallastController;
 		BatteryProvider m_BatteryProvider;
 		UnidirectionalMotor m_FrontLeftThruster;
 		UnidirectionalMotor m_FrontRightThruster;
@@ -397,7 +426,7 @@ namespace PiSubmarine::Drone::Server::Fake
 		DepthProvider m_DepthProvider;
 		ProximityProvider m_ProximityProvider;
 		PiSubmarine::Control::Horizontal::FourJetDifferential::Controller m_HorizontalController;
-		VerticalController m_VerticalController;
+		Control::Vertical::Ballast::Controller m_VerticalController;
 		GimbalController m_GimbalController;
 		LampController m_LampController;
 

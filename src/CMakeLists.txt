@@ -3,8 +3,12 @@ include("${PISUBMARINE_BUILD_SYSTEM}")
 message("Adding library: ${PISUBMARINE_MODULE_NAME}")
 add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/ErrorCode.cpp
+        PiSubmarine/Drone/Server/Fake/BallastActuator.cpp
+        PiSubmarine/Drone/Server/Fake/BallastActuator.h
         PiSubmarine/Drone/Server/Fake/BallastProvider.cpp
         PiSubmarine/Drone/Server/Fake/BatteryProvider.cpp
+        PiSubmarine/Drone/Server/Fake/BidirectionalMotor.cpp
+        PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h
         PiSubmarine/Drone/Server/Fake/DepthProvider.cpp
         PiSubmarine/Drone/Server/Fake/GimbalController.cpp
         PiSubmarine/Drone/Server/Fake/HorizontalController.cpp
@@ -50,6 +54,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Hori
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Vertical.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vertical.Api)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Vertical.Ballast.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vertical.Ballast)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Gimbal.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Gimbal.Api)
@@ -99,6 +106,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast)
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Ballast.Telemetry.Protobuf.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast.Telemetry.Protobuf)
 
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Ballast.Pid.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast.Pid)
+
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Depth.Telemetry.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Depth.Telemetry.Api)
 
@@ -113,6 +123,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Lamp.Telemet
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Motor.Telemetry.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Motor.Telemetry.Api)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Motor.Bidirectional.Api.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Motor.Bidirectional.Api)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Motor.Telemetry.Protobuf.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Motor.Telemetry.Protobuf)

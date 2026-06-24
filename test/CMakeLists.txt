@@ -5,8 +5,10 @@ include(FetchContent)
 project(${PISUBMARINE_MODULE_NAME}.Test LANGUAGES CXX)
 
 set(${PISUBMARINE_MODULE_NAME}.Test.Sources
+        "PiSubmarine/Drone/Server/Fake/BallastActuatorTest.cpp"
         "PiSubmarine/Drone/Server/Fake/BallastProviderTest.cpp"
         "PiSubmarine/Drone/Server/Fake/BatteryProviderTest.cpp"
+        "PiSubmarine/Drone/Server/Fake/BidirectionalMotorTest.cpp"
         "PiSubmarine/Drone/Server/Fake/LampControllerTest.cpp"
         "PiSubmarine/Drone/Server/Fake/MotorProviderTest.cpp"
         "PiSubmarine/Drone/Server/Fake/ErrorCodeTest.cpp"
