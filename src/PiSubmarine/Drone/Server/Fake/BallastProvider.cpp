@@ -2,7 +2,7 @@
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    BallastProvider::BallastProvider(const NormalizedFraction initialPosition) noexcept
+    BallastProvider::BallastProvider(const Ballast::BallastFillFraction initialPosition) noexcept
         : m_State(Ballast::Telemetry::Api::State{.Position = initialPosition})
     {
     }
@@ -12,7 +12,7 @@ namespace PiSubmarine::Drone::Server::Fake
         return m_State;
     }
 
-    void BallastProvider::SetPosition(const NormalizedFraction position) noexcept
+    void BallastProvider::SetPosition(const Ballast::BallastFillFraction position) noexcept
     {
         m_State = Ballast::Telemetry::Api::State{.Position = position};
     }

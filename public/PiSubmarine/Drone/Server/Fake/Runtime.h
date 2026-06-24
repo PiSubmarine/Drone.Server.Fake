@@ -4,11 +4,11 @@
 #include <memory>
 #include <optional>
 
+#include "PiSubmarine/Ballast/BallastFillFraction.h"
 #include "PiSubmarine/Drone/Server/Fake/ErrorCode.h"
 #include "PiSubmarine/Error/Api/Result.h"
 #include "PiSubmarine/Grpc/Server/Server.h"
 #include "PiSubmarine/Meters.h"
-#include "PiSubmarine/NormalizedFraction.h"
 #include "PiSubmarine/Udp/Api/Endpoint.h"
 #include "PiSubmarine/Video/Server/GStreamer/Config.h"
 #include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
@@ -23,7 +23,8 @@ namespace PiSubmarine::Drone::Server::Fake
             double DroneMassKilograms = 8.0;
             double FrictionCoefficient = 1.0;
             double BallastMaximumMassKilograms = 0.3;
-            NormalizedFraction EquilibriumBallastPosition = NormalizedFraction(0.5);
+            Ballast::BallastFillFraction EquilibriumBallastPosition =
+                Ballast::BallastFillFraction{NormalizedFraction{0.5}};
             Meters InitialDepth = 1.0_m;
             Meters SeaFloorDepth = 25.0_m;
         };

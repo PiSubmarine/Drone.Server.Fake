@@ -139,7 +139,8 @@ int main(const int argc, char** argv)
         double simulationDroneMassKilograms = config.Simulation.DroneMassKilograms;
         double simulationFrictionCoefficient = config.Simulation.FrictionCoefficient;
         double simulationBallastMaximumMassGrams = config.Simulation.BallastMaximumMassKilograms * 1000.0;
-        double simulationEquilibriumBallastPosition = static_cast<double>(config.Simulation.EquilibriumBallastPosition);
+        double simulationEquilibriumBallastPosition =
+            static_cast<double>(config.Simulation.EquilibriumBallastPosition);
         double simulationInitialDepthMeters = config.Simulation.InitialDepth.Value;
         double simulationSeaFloorDepthMeters = config.Simulation.SeaFloorDepth.Value;
         std::string videoResourceId = config.VideoController.ResourceId.Value;
@@ -255,7 +256,9 @@ int main(const int argc, char** argv)
         config.Simulation.DroneMassKilograms = simulationDroneMassKilograms;
         config.Simulation.FrictionCoefficient = simulationFrictionCoefficient;
         config.Simulation.BallastMaximumMassKilograms = simulationBallastMaximumMassGrams / 1000.0;
-        config.Simulation.EquilibriumBallastPosition = PiSubmarine::NormalizedFraction(simulationEquilibriumBallastPosition);
+        config.Simulation.EquilibriumBallastPosition =
+            PiSubmarine::Ballast::BallastFillFraction{
+                PiSubmarine::NormalizedFraction{simulationEquilibriumBallastPosition}};
         config.Simulation.InitialDepth = PiSubmarine::Meters{simulationInitialDepthMeters};
         config.Simulation.SeaFloorDepth = PiSubmarine::Meters{simulationSeaFloorDepthMeters};
         config.StartupVideoEndpoint = parsedStartupVideoEndpoint;

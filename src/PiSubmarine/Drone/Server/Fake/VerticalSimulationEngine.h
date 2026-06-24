@@ -1,5 +1,6 @@
 #pragma once
 
+#include "PiSubmarine/Ballast/BallastFillFraction.h"
 #include "PiSubmarine/Ballast/Telemetry/Api/IProvider.h"
 #include "PiSubmarine/Depth/Telemetry/Api/State.h"
 #include "PiSubmarine/Proximity/Telemetry/Api/State.h"
@@ -12,7 +13,7 @@ namespace PiSubmarine::Drone::Server::Fake
         double DroneMassKilograms = 8.0;
         double FrictionCoefficient = 1.0;
         double BallastMaximumMassKilograms = 0.3;
-        NormalizedFraction EquilibriumBallastPosition = NormalizedFraction(0.5);
+        Ballast::BallastFillFraction EquilibriumBallastPosition = Ballast::BallastFillFraction{NormalizedFraction{0.5}};
         Meters InitialDepth = 1.0_m;
         Meters SeaFloorDepth = 25.0_m;
     };

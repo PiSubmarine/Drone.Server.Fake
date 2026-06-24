@@ -1,13 +1,15 @@
 #include <gtest/gtest.h>
 
+#include "PiSubmarine/Ballast/BallastFillFraction.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.h"
+#include "PiSubmarine/NormalizedFraction.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
     TEST(VerticalSimulationEngineTest, ReportsInitialDepthAndSeaFloorDistance)
     {
-        BallastProvider ballastProvider(NormalizedFraction(0.5));
+        BallastProvider ballastProvider(Ballast::BallastFillFraction{NormalizedFraction{0.5}});
         VerticalSimulationEngine simulation(
             ballastProvider,
             VerticalSimulationConfig{
@@ -25,7 +27,7 @@ namespace PiSubmarine::Drone::Server::Fake
 
     TEST(VerticalSimulationEngineTest, SinksWhenBallastIsAboveEquilibrium)
     {
-        BallastProvider ballastProvider(NormalizedFraction(0.8));
+        BallastProvider ballastProvider(Ballast::BallastFillFraction{NormalizedFraction{0.8}});
         VerticalSimulationEngine simulation(
             ballastProvider,
             VerticalSimulationConfig{
@@ -48,7 +50,7 @@ namespace PiSubmarine::Drone::Server::Fake
 
     TEST(VerticalSimulationEngineTest, RisesWhenBallastIsBelowEquilibrium)
     {
-        BallastProvider ballastProvider(NormalizedFraction(0.2));
+        BallastProvider ballastProvider(Ballast::BallastFillFraction{NormalizedFraction{0.2}});
         VerticalSimulationEngine simulation(
             ballastProvider,
             VerticalSimulationConfig{

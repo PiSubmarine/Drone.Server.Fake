@@ -93,6 +93,9 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Battery.Tele
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Ballast.Telemetry.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast.Telemetry.Api)
 
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Ballast.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast)
+
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Ballast.Telemetry.Protobuf.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Ballast.Telemetry.Protobuf)
 
