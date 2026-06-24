@@ -141,6 +141,8 @@ int main(const int argc, char** argv)
         double simulationBallastMaximumMassGrams = config.Simulation.BallastMaximumMassKilograms * 1000.0;
         double simulationEquilibriumBallastPosition =
             static_cast<double>(config.Simulation.EquilibriumBallastPosition);
+        double verticalControlInitialEquilibriumBallastFill =
+            static_cast<double>(config.VerticalControl.InitialEquilibriumBallastFill);
         double simulationInitialDepthMeters = config.Simulation.InitialDepth.Value;
         double simulationSeaFloorDepthMeters = config.Simulation.SeaFloorDepth.Value;
         std::string videoResourceId = config.VideoController.ResourceId.Value;
@@ -183,6 +185,11 @@ int main(const int argc, char** argv)
                 simulationEquilibriumBallastPosition,
                 "Ballast position that keeps neutral buoyancy in the simulation.")
             ->default_val(simulationEquilibriumBallastPosition);
+        app.add_option(
+                "--vertical-initial-equilibrium-ballast-fill",
+                verticalControlInitialEquilibriumBallastFill,
+                "Initial ballast fill guess used by the vertical ballast controller.")
+            ->default_val(verticalControlInitialEquilibriumBallastFill);
         app.add_option(
                 "--simulation-initial-depth-m",
                 simulationInitialDepthMeters,
@@ -259,6 +266,9 @@ int main(const int argc, char** argv)
         config.Simulation.EquilibriumBallastPosition =
             PiSubmarine::Ballast::BallastFillFraction{
                 PiSubmarine::NormalizedFraction{simulationEquilibriumBallastPosition}};
+        config.VerticalControl.InitialEquilibriumBallastFill =
+            PiSubmarine::Ballast::BallastFillFraction{
+                PiSubmarine::NormalizedFraction{verticalControlInitialEquilibriumBallastFill}};
         config.Simulation.InitialDepth = PiSubmarine::Meters{simulationInitialDepthMeters};
         config.Simulation.SeaFloorDepth = PiSubmarine::Meters{simulationSeaFloorDepthMeters};
         config.StartupVideoEndpoint = parsedStartupVideoEndpoint;

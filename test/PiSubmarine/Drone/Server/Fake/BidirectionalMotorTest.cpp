@@ -34,4 +34,18 @@ namespace PiSubmarine::Drone::Server::Fake
         EXPECT_FALSE(*powered);
         EXPECT_DOUBLE_EQ(static_cast<double>(*dutyCycle), 0.0);
     }
+
+    TEST(BidirectionalMotorTest, ExposesTelemetryForReverseDrive)
+    {
+        BidirectionalMotor motor;
+
+        ASSERT_TRUE(motor.SetDutyCycle(SignedNormalizedFraction{-0.4}).has_value());
+
+        const auto state = motor.GetState();
+
+        ASSERT_TRUE(state.has_value());
+        EXPECT_EQ(state->Operational, Motor::Telemetry::Api::OperationalState::Operational);
+        EXPECT_EQ(state->Direction, Motor::Telemetry::Api::DriveDirection::Reverse);
+        EXPECT_DOUBLE_EQ(static_cast<double>(state->DriveEffort), 0.4);
+    }
 }

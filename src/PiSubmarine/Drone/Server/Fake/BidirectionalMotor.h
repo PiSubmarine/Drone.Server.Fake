@@ -1,10 +1,12 @@
 #pragma once
 
 #include "PiSubmarine/Motor/Bidirectional/Api/IController.h"
+#include "PiSubmarine/Motor/Telemetry/Api/IProvider.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    class BidirectionalMotor final : public Motor::Bidirectional::Api::IController
+    class BidirectionalMotor final : public Motor::Bidirectional::Api::IController,
+                                     public Motor::Telemetry::Api::IProvider
     {
     public:
         [[nodiscard]] Error::Api::Result<void> SetPowered(bool enabled) override;
@@ -13,6 +15,7 @@ namespace PiSubmarine::Drone::Server::Fake
         [[nodiscard]] Error::Api::Result<void> SetDutyCycle(SignedNormalizedFraction dutyCycle) override;
         [[nodiscard]] Error::Api::Result<NormalizedFraction> GetForwardMinimalEffectiveDutyCycle() const override;
         [[nodiscard]] Error::Api::Result<NormalizedFraction> GetReverseMinimalEffectiveDutyCycle() const override;
+        [[nodiscard]] Error::Api::Result<Motor::Telemetry::Api::State> GetState() const override;
 
     private:
         bool m_IsPowered = false;

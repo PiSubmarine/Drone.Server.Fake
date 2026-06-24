@@ -291,7 +291,13 @@ namespace PiSubmarine::Drone::Server::Fake
 			  m_BallastController(
 				  m_BallastMotor,
 				  m_BallastProvider,
-				  Ballast::Pid::Controller::Config{},
+				  Ballast::Pid::Controller::Config{
+					  .ProportionalGain = 20,
+					  .IntegralGainPerSecond = 0.25,
+					  .IntegralLimit = 1.0,
+					  .PositionDeadband = NormalizedFraction{0.01},
+					  .MaxDutyCycle = NormalizedFraction{1}
+				  },
 				  Ballast::BallastFillFraction::Empty()),
 			  m_VerticalSimulation(m_BallastProvider, VerticalSimulationConfig{
 				                       .DroneMassKilograms = config.Simulation.DroneMassKilograms,
@@ -307,6 +313,7 @@ namespace PiSubmarine::Drone::Server::Fake
 			  BatteryTelemetrySerializer(m_BatteryProvider),
 			  DepthTelemetrySerializer(m_DepthProvider),
 			  LampTelemetrySerializer(m_LampController),
+			  BallastMotorTelemetrySerializer(m_BallastMotor),
 			  FrontLeftMotorTelemetrySerializer(m_FrontLeftThruster),
 			  FrontRightMotorTelemetrySerializer(m_FrontRightThruster),
 			  ProximityTelemetrySerializer(m_ProximityProvider),
@@ -320,6 +327,7 @@ namespace PiSubmarine::Drone::Server::Fake
 				  {MakeChannelId(Telemetry::Channels::Api::BatteryMain), &BatteryTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::DepthMain), &DepthTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::LampMain), &LampTelemetrySerializer},
+				  {MakeChannelId(Telemetry::Channels::Api::MotorBallast), &BallastMotorTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::MotorFrontLeft), &FrontLeftMotorTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::MotorFrontRight), &FrontRightMotorTelemetrySerializer},
 				  {MakeChannelId(Telemetry::Channels::Api::MotorRearLeft), &RearLeftMotorTelemetrySerializer},
@@ -332,15 +340,16 @@ namespace PiSubmarine::Drone::Server::Fake
 			                         m_RearRightThruster),
 			  m_VerticalController(
 				  m_BallastController,
-				  m_BallastProvider,
 				  m_DepthProvider,
+				  // TODO These values produce somewhat good results inside the simulation, but are mathematically incorrect
 				  Control::Vertical::Ballast::Controller::Config{
-					  .ProportionalGain = 0.01,
-					  .IntegralGainPerSecond = 0,
-					  .DerivativeGainSeconds = 10,
-					  .IntegralLimitMetersSeconds = 50.0,
+					  .ProportionalGain = 0.5,
+					  .IntegralGainPerSecond = 0.5,
+					  .DerivativeGainSeconds = 0.5,
+					  .IntegralLimitMetersSeconds = 100,
 					  .DepthDeadband = 0.05_m,
-					  .MaximumBallastCorrection = NormalizedFraction{0.5}
+					  .MaximumBallastCorrection = NormalizedFraction{0.5},
+					  .InitialEquilibriumBallastFill = config.VerticalControl.InitialEquilibriumBallastFill
 				  }
 			  ),
 			  ManualPilot(
@@ -434,6 +443,7 @@ namespace PiSubmarine::Drone::Server::Fake
 		Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
 		Depth::Telemetry::Protobuf::Serializer DepthTelemetrySerializer;
 		Lamp::Telemetry::Protobuf::Serializer LampTelemetrySerializer;
+		Motor::Telemetry::Protobuf::Serializer BallastMotorTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer FrontLeftMotorTelemetrySerializer;
 		Motor::Telemetry::Protobuf::Serializer FrontRightMotorTelemetrySerializer;
 		Proximity::Telemetry::Protobuf::Serializer ProximityTelemetrySerializer;

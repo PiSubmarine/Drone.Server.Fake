@@ -29,11 +29,18 @@ namespace PiSubmarine::Drone::Server::Fake
             Meters SeaFloorDepth = 25.0_m;
         };
 
+        struct VerticalControlConfig
+        {
+            Ballast::BallastFillFraction InitialEquilibriumBallastFill =
+                Ballast::BallastFillFraction{NormalizedFraction{0.5}};
+        };
+
         struct Config
         {
             ::PiSubmarine::Grpc::Server::TlsConfig GrpcServer;
             Video::Server::GStreamer::Config VideoController;
             SimulationConfig Simulation;
+            VerticalControlConfig VerticalControl;
             std::optional<Video::Subscription::Api::Endpoint> StartupVideoEndpoint;
             bool StartupVideoEnable = false;
             Udp::Api::Endpoint ControlEndpoint{"127.0.0.1", 50052};
