@@ -1,17 +1,10 @@
 #include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
 
-#include <cmath>
-
 namespace PiSubmarine::Drone::Server::Fake
 {
-    namespace
+    BallastProvider::BallastProvider(const NormalizedFraction initialPosition) noexcept
+        : m_State(Ballast::Telemetry::Api::State{.Position = initialPosition})
     {
-        [[nodiscard]] double FractionalCycle(
-            const std::chrono::nanoseconds& uptime,
-            const std::chrono::duration<double>& period)
-        {
-            return std::fmod(std::chrono::duration<double>(uptime).count(), period.count()) / period.count();
-        }
     }
 
     Error::Api::Result<Ballast::Telemetry::Api::State> BallastProvider::GetState() const
@@ -19,9 +12,8 @@ namespace PiSubmarine::Drone::Server::Fake
         return m_State;
     }
 
-    void BallastProvider::Tick(const std::chrono::nanoseconds& uptime, const std::chrono::nanoseconds&)
+    void BallastProvider::SetPosition(const NormalizedFraction position) noexcept
     {
-        m_State = Ballast::Telemetry::Api::State{
-            .Position = NormalizedFraction{FractionalCycle(uptime, std::chrono::seconds(10))}};
+        m_State = Ballast::Telemetry::Api::State{.Position = position};
     }
 }

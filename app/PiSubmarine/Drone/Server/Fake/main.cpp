@@ -136,6 +136,12 @@ int main(const int argc, char** argv)
         auto controlAddress = FormatEndpoint(config.ControlEndpoint);
         auto telemetryAddress = FormatEndpoint(config.TelemetryEndpoint);
         std::string grpcAddress = "0.0.0.0:50051";
+        double simulationDroneMassKilograms = config.Simulation.DroneMassKilograms;
+        double simulationFrictionCoefficient = config.Simulation.FrictionCoefficient;
+        double simulationBallastMaximumMassGrams = config.Simulation.BallastMaximumMassKilograms * 1000.0;
+        double simulationEquilibriumBallastPosition = static_cast<double>(config.Simulation.EquilibriumBallastPosition);
+        double simulationInitialDepthMeters = config.Simulation.InitialDepth.Value;
+        double simulationSeaFloorDepthMeters = config.Simulation.SeaFloorDepth.Value;
         std::string videoResourceId = config.VideoController.ResourceId.Value;
         std::string videoSourceDescription;
         std::string startupVideoEndpoint;
@@ -156,6 +162,36 @@ int main(const int argc, char** argv)
             ->default_val(telemetryAddress);
         app.add_option("--video-resource-id", videoResourceId, "Lease resource id used for video streaming")
             ->default_val(videoResourceId);
+        app.add_option(
+                "--simulation-drone-mass-kg",
+                simulationDroneMassKilograms,
+                "Simulated dry mass of the drone in kilograms.")
+            ->default_val(simulationDroneMassKilograms);
+        app.add_option(
+                "--simulation-friction-coefficient",
+                simulationFrictionCoefficient,
+                "Linear water friction coefficient applied to vertical speed.")
+            ->default_val(simulationFrictionCoefficient);
+        app.add_option(
+                "--simulation-ballast-max-mass-g",
+                simulationBallastMaximumMassGrams,
+                "Maximum ballast water mass in grams.")
+            ->default_val(simulationBallastMaximumMassGrams);
+        app.add_option(
+                "--simulation-equilibrium-ballast-position",
+                simulationEquilibriumBallastPosition,
+                "Ballast position that keeps neutral buoyancy in the simulation.")
+            ->default_val(simulationEquilibriumBallastPosition);
+        app.add_option(
+                "--simulation-initial-depth-m",
+                simulationInitialDepthMeters,
+                "Initial simulated depth in meters.")
+            ->default_val(simulationInitialDepthMeters);
+        app.add_option(
+                "--simulation-sea-floor-depth-m",
+                simulationSeaFloorDepthMeters,
+                "Virtual sea floor depth in meters.")
+            ->default_val(simulationSeaFloorDepthMeters);
         app.add_option(
                 "--video-source",
                 videoSourceDescription,
@@ -216,6 +252,12 @@ int main(const int argc, char** argv)
 
         config.ControlEndpoint = *parsedControlEndpoint;
         config.TelemetryEndpoint = *parsedTelemetryEndpoint;
+        config.Simulation.DroneMassKilograms = simulationDroneMassKilograms;
+        config.Simulation.FrictionCoefficient = simulationFrictionCoefficient;
+        config.Simulation.BallastMaximumMassKilograms = simulationBallastMaximumMassGrams / 1000.0;
+        config.Simulation.EquilibriumBallastPosition = PiSubmarine::NormalizedFraction(simulationEquilibriumBallastPosition);
+        config.Simulation.InitialDepth = PiSubmarine::Meters{simulationInitialDepthMeters};
+        config.Simulation.SeaFloorDepth = PiSubmarine::Meters{simulationSeaFloorDepthMeters};
         config.StartupVideoEndpoint = parsedStartupVideoEndpoint;
         config.StartupVideoEnable = startupVideoEnable;
         config.TickPeriod = std::chrono::milliseconds(tickPeriodMilliseconds);

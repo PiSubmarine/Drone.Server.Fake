@@ -1,12 +1,14 @@
 #include <gtest/gtest.h>
 
-#include "PiSubmarine/Drone/Server/Fake/MotorProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
 
 namespace PiSubmarine::Drone::Server::Fake
 {
-    TEST(MotorProviderTest, CyclesThroughDifferentStates)
+    TEST(UnidirectionalMotorTest, CyclesThroughDifferentStates)
     {
-        MotorProvider provider;
+        UnidirectionalMotor provider;
+        ASSERT_TRUE(provider.SetPowered(true).has_value());
+        ASSERT_TRUE(provider.SetDutyCycle(NormalizedFraction(0.65)).has_value());
 
         provider.Tick(std::chrono::seconds(0), std::chrono::seconds(0));
         const auto initial = provider.GetState();

@@ -27,6 +27,7 @@
 #include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalController.h"
+#include "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.h"
 #include "PiSubmarine/Error/Api/ErrorCondition.h"
 #include "PiSubmarine/Error/Api/MakeError.h"
 #include "PiSubmarine/Grpc/Server/Server.h"
@@ -281,6 +282,16 @@ namespace PiSubmarine::Drone::Server::Fake
 				  LoggingFactory),
 			  ControlSocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
 			  TelemetrySocket(config.ReceiveQueueCapacity, config.MaxDatagramSize),
+			  m_BallastProvider(config.Simulation.EquilibriumBallastPosition),
+			  m_VerticalSimulation(m_BallastProvider, VerticalSimulationConfig{
+				  .DroneMassKilograms = config.Simulation.DroneMassKilograms,
+				  .FrictionCoefficient = config.Simulation.FrictionCoefficient,
+				  .BallastMaximumMassKilograms = config.Simulation.BallastMaximumMassKilograms,
+				  .EquilibriumBallastPosition = config.Simulation.EquilibriumBallastPosition,
+				  .InitialDepth = config.Simulation.InitialDepth,
+				  .SeaFloorDepth = config.Simulation.SeaFloorDepth}),
+			  m_DepthProvider(m_VerticalSimulation),
+			  m_ProximityProvider(m_VerticalSimulation),
 			  BallastTelemetrySerializer(m_BallastProvider),
 			  BatteryTelemetrySerializer(m_BatteryProvider),
 			  DepthTelemetrySerializer(m_DepthProvider),
@@ -308,6 +319,7 @@ namespace PiSubmarine::Drone::Server::Fake
 			  }),
 			  m_HorizontalController(m_FrontLeftThruster, m_FrontRightThruster, m_RearLeftThruster,
 			                         m_RearRightThruster),
+			  m_VerticalController(m_BallastProvider),
 			  ManualPilot(
 				  m_HorizontalController,
 				  m_VerticalController,
@@ -344,15 +356,13 @@ namespace PiSubmarine::Drone::Server::Fake
 			ThrowIfError(TimeManager.AddTickable(ControlEngine), "adding control engine to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(TelemetryServer), "adding telemetry server to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(VideoController), "adding video controller to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_BallastProvider), "adding ballast provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_BatteryProvider), "adding battery provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_DepthProvider), "adding depth provider to Time.Manager");
+			ThrowIfError(TimeManager.AddTickable(m_VerticalSimulation), "adding vertical simulation to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_LampController), "adding lamp controller to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_FrontLeftThruster),
 			             "adding front-left motor provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_FrontRightThruster),
 			             "adding front-right motor provider to Time.Manager");
-			ThrowIfError(TimeManager.AddTickable(m_ProximityProvider), "adding proximity provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_RearLeftThruster),
 			             "adding rear-left motor provider to Time.Manager");
 			ThrowIfError(TimeManager.AddTickable(m_RearRightThruster),
@@ -377,20 +387,19 @@ namespace PiSubmarine::Drone::Server::Fake
 		Security::Aead::Openssl::Provider TelemetryAeadProvider;
 		Security::Nonce::Openssl::Provider TelemetryNonceProvider;
 
-		PiSubmarine::Control::Horizontal::FourJetDifferential::Controller m_HorizontalController;
-		VerticalController m_VerticalController;
-		GimbalController m_GimbalController;
-		LampController m_LampController;
-
 		BallastProvider m_BallastProvider;
 		BatteryProvider m_BatteryProvider;
-		DepthProvider m_DepthProvider;
 		UnidirectionalMotor m_FrontLeftThruster;
 		UnidirectionalMotor m_FrontRightThruster;
 		UnidirectionalMotor m_RearLeftThruster;
 		UnidirectionalMotor m_RearRightThruster;
-
+		VerticalSimulationEngine m_VerticalSimulation;
+		DepthProvider m_DepthProvider;
 		ProximityProvider m_ProximityProvider;
+		PiSubmarine::Control::Horizontal::FourJetDifferential::Controller m_HorizontalController;
+		VerticalController m_VerticalController;
+		GimbalController m_GimbalController;
+		LampController m_LampController;
 
 		Ballast::Telemetry::Protobuf::Serializer BallastTelemetrySerializer;
 		Battery::Telemetry::Protobuf::Serializer BatteryTelemetrySerializer;
