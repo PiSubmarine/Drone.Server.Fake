@@ -17,7 +17,11 @@ namespace PiSubmarine::Drone::Server::Fake
         BallastActuator(
             Motor::Bidirectional::Api::IController& motorController,
             BallastProvider& ballastProvider,
-            const Config& config = Config{}) noexcept;
+            const Config& config) noexcept;
+
+        BallastActuator(
+            Motor::Bidirectional::Api::IController& motorController,
+            BallastProvider& ballastProvider) noexcept;
 
         void Tick(const std::chrono::nanoseconds& uptime, const std::chrono::nanoseconds& deltaTime) override;
 

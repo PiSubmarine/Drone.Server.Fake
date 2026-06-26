@@ -7,6 +7,13 @@ namespace PiSubmarine::Drone::Server::Fake
 {
     BallastActuator::BallastActuator(
         Motor::Bidirectional::Api::IController& motorController,
+        BallastProvider& ballastProvider) noexcept
+        : BallastActuator(motorController, ballastProvider, Config{})
+    {
+    }
+
+    BallastActuator::BallastActuator(
+        Motor::Bidirectional::Api::IController& motorController,
         BallastProvider& ballastProvider,
         const Config& config) noexcept
         : m_MotorController(motorController)
