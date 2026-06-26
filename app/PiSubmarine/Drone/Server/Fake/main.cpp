@@ -12,7 +12,7 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
-#include "PiSubmarine/Ballast/Pid/Controller.h"
+#include "PiSubmarine/Drone/Server/Logging.h"
 #include "PiSubmarine/Drone/Server/Runtime.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastActuator.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
@@ -20,7 +20,6 @@
 #include "PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/DepthProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/LampController.h"
-#include "PiSubmarine/Drone/Server/Fake/Logging.h"
 #include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/ServoController.h"
 #include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
@@ -98,7 +97,7 @@ namespace PiSubmarine::Drone::Server::Fake
 
         [[nodiscard]] std::shared_ptr<spdlog::logger> CreateLogger()
         {
-            return CreateConfiguredLogger("Drone.Server.Fake.App");
+            return PiSubmarine::Drone::Server::CreateConfiguredLogger("Drone.Server.Fake.App");
         }
 
         [[nodiscard]] const char* ToString(const Error::Api::ErrorCondition condition) noexcept
@@ -301,16 +300,6 @@ int main(const int argc, char** argv)
         BallastProvider ballastProvider(PiSubmarine::Ballast::BallastFillFraction::Empty());
         BidirectionalMotor ballastMotor;
         BallastActuator ballastActuator(ballastMotor, ballastProvider);
-        PiSubmarine::Ballast::Pid::Controller ballastController(
-            ballastMotor,
-            ballastProvider,
-            PiSubmarine::Ballast::Pid::Controller::Config{
-                .ProportionalGain = 20,
-                .IntegralGainPerSecond = 0.25,
-                .IntegralLimit = 1.0,
-                .PositionDeadband = PiSubmarine::NormalizedFraction{0.01},
-                .MaxDutyCycle = PiSubmarine::NormalizedFraction{1.0}},
-            PiSubmarine::Ballast::BallastFillFraction::Empty());
         BatteryProvider batteryProvider;
         UnidirectionalMotor frontLeftMotor;
         UnidirectionalMotor frontRightMotor;
@@ -325,7 +314,6 @@ int main(const int argc, char** argv)
         Runtime runtime(
             config,
             Runtime::Dependencies{
-                .BallastController = ballastController,
                 .BallastTelemetryProvider = ballastProvider,
                 .BatteryTelemetryProvider = batteryProvider,
                 .BallastMotorController = ballastMotor,

@@ -10,7 +10,6 @@ add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h
         PiSubmarine/Drone/Server/Fake/DepthProvider.cpp
         PiSubmarine/Drone/Server/Fake/LampController.cpp
-        PiSubmarine/Drone/Server/Fake/LoggerFactory.cpp
         PiSubmarine/Drone/Server/Fake/ProximityProvider.cpp
         PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.cpp
         PiSubmarine/Drone/Server/Fake/ServoController.cpp
