@@ -13,6 +13,7 @@ set(${PISUBMARINE_MODULE_NAME}.Test.Sources
         "PiSubmarine/Drone/Server/Fake/MotorProviderTest.cpp"
         "PiSubmarine/Drone/Server/Fake/ErrorCodeTest.cpp"
         "PiSubmarine/Drone/Server/Fake/RuntimeTest.cpp"
+        "PiSubmarine/Drone/Server/Fake/ServoControllerTest.cpp"
         "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngineTest.cpp")
 
 enable_testing()

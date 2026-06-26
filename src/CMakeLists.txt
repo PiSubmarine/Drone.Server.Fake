@@ -10,14 +10,13 @@ add_library(${PISUBMARINE_MODULE_NAME}
         PiSubmarine/Drone/Server/Fake/BidirectionalMotor.cpp
         PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h
         PiSubmarine/Drone/Server/Fake/DepthProvider.cpp
-        PiSubmarine/Drone/Server/Fake/GimbalController.cpp
-        PiSubmarine/Drone/Server/Fake/HorizontalController.cpp
         PiSubmarine/Drone/Server/Fake/LampController.cpp
         PiSubmarine/Drone/Server/Fake/LoggerFactory.cpp
         PiSubmarine/Drone/Server/Fake/ProximityProvider.cpp
-        PiSubmarine/Drone/Server/Fake/VerticalController.cpp
         PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.cpp
         PiSubmarine/Drone/Server/Fake/Runtime.cpp
+        PiSubmarine/Drone/Server/Fake/ServoController.cpp
+        PiSubmarine/Drone/Server/Fake/ServoController.h
         PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.cpp
         PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h)
 target_include_directories(${PISUBMARINE_MODULE_NAME}
@@ -58,11 +57,14 @@ target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vert
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Vertical.Ballast.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Vertical.Ballast)
 
-PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Gimbal.Api.git" "")
-target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Gimbal.Api)
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Gimbal.Servo.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Gimbal.Servo)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Lamp.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Lamp.Api)
+
+PiSubmarineAddDependency("https://github.com/PiSubmarine/Servo.Api.git" "")
+target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Servo.Api)
 
 PiSubmarineAddDependency("https://github.com/PiSubmarine/Control.Video.Api.git" "")
 target_link_libraries(${PISUBMARINE_MODULE_NAME} PUBLIC PiSubmarine.Control.Video.Api)

@@ -29,6 +29,7 @@ Internally it composes:
 - `Lease.Server.Grpc`
 - `Video.Subscription.Grpc.Server`
 - `Control.Engine`
+- `Control.Gimbal.Servo`
 - `Control.Server.Udp`
 - `Control.Pilot.Manual`
 - `Control.Pilot.Dummy`
@@ -40,6 +41,9 @@ Internally it composes:
 
 `Runtime` owns the static composition graph, binds the UDP sockets, starts the
 shared gRPC server, and then gives the main thread to `Time.Manager`.
+
+For gimbal control, `Runtime` composes the real `Control.Gimbal.Servo`
+implementation on top of a fake private `Servo::IController`.
 
 The fake low-level controllers and telemetry providers live only inside this
 module as private implementation details and are not intended to be reused

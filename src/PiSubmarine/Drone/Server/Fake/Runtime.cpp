@@ -18,15 +18,16 @@
 #include "PiSubmarine/Ballast/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Battery/Telemetry/Protobuf/Serializer.h"
 #include "PiSubmarine/Depth/Telemetry/Protobuf/Serializer.h"
+#include "PiSubmarine/Control/Gimbal/Servo/Controller.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastActuator.h"
 #include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
 #include "PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/DepthProvider.h"
-#include "PiSubmarine/Drone/Server/Fake/GimbalController.h"
 #include "PiSubmarine/Drone/Server/Fake/HorizontalController.h"
 #include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/LoggerFactory.h"
+#include "PiSubmarine/Drone/Server/Fake/ServoController.h"
 #include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
 #include "PiSubmarine/Control/Vertical/Ballast/Controller.h"
 #include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
@@ -352,6 +353,8 @@ namespace PiSubmarine::Drone::Server::Fake
 					  .InitialEquilibriumBallastFill = config.VerticalControl.InitialEquilibriumBallastFill
 				  }
 			  ),
+			  m_ServoController(),
+			  m_GimbalController(m_ServoController),
 			  ManualPilot(
 				  m_HorizontalController,
 				  m_VerticalController,
@@ -436,7 +439,8 @@ namespace PiSubmarine::Drone::Server::Fake
 		ProximityProvider m_ProximityProvider;
 		PiSubmarine::Control::Horizontal::FourJetDifferential::Controller m_HorizontalController;
 		Control::Vertical::Ballast::Controller m_VerticalController;
-		GimbalController m_GimbalController;
+		ServoController m_ServoController;
+		Control::Gimbal::Servo::Controller m_GimbalController;
 		LampController m_LampController;
 
 		Ballast::Telemetry::Protobuf::Serializer BallastTelemetrySerializer;
