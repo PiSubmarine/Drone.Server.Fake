@@ -12,8 +12,19 @@
 #include <spdlog/spdlog.h>
 #include <spdlog/sinks/stdout_color_sinks.h>
 
+#include "PiSubmarine/Ballast/Pid/Controller.h"
+#include "PiSubmarine/Drone/Server/Runtime.h"
+#include "PiSubmarine/Drone/Server/Fake/BallastActuator.h"
+#include "PiSubmarine/Drone/Server/Fake/BallastProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/BatteryProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/BidirectionalMotor.h"
+#include "PiSubmarine/Drone/Server/Fake/DepthProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/LampController.h"
 #include "PiSubmarine/Drone/Server/Fake/Logging.h"
-#include "PiSubmarine/Drone/Server/Fake/Runtime.h"
+#include "PiSubmarine/Drone/Server/Fake/ProximityProvider.h"
+#include "PiSubmarine/Drone/Server/Fake/ServoController.h"
+#include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
+#include "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.h"
 #include "PiSubmarine/Error/Api/Error.h"
 #include "PiSubmarine/Video/Server/GStreamer/Source.h"
 #include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
@@ -125,26 +136,28 @@ namespace PiSubmarine::Drone::Server::Fake
 int main(const int argc, char** argv)
 {
     using namespace PiSubmarine::Drone::Server::Fake;
+    using Runtime = PiSubmarine::Drone::Server::Runtime;
     const auto logger = CreateLogger();
 
     try
     {
         Runtime::Config config;
+        VerticalSimulationConfig simulationConfig;
         std::filesystem::path serverCertificatePath;
         std::filesystem::path serverPrivateKeyPath;
         std::filesystem::path clientCertificateAuthorityPath;
         auto controlAddress = FormatEndpoint(config.ControlEndpoint);
         auto telemetryAddress = FormatEndpoint(config.TelemetryEndpoint);
         std::string grpcAddress = "0.0.0.0:50051";
-        double simulationDroneMassKilograms = config.Simulation.DroneMassKilograms;
-        double simulationFrictionCoefficient = config.Simulation.FrictionCoefficient;
-        double simulationBallastMaximumMassGrams = config.Simulation.BallastMaximumMassKilograms * 1000.0;
+        double simulationDroneMassKilograms = simulationConfig.DroneMassKilograms;
+        double simulationFrictionCoefficient = simulationConfig.FrictionCoefficient;
+        double simulationBallastMaximumMassGrams = simulationConfig.BallastMaximumMassKilograms * 1000.0;
         double simulationEquilibriumBallastPosition =
-            static_cast<double>(config.Simulation.EquilibriumBallastPosition);
+            static_cast<double>(simulationConfig.EquilibriumBallastPosition);
         double verticalControlInitialEquilibriumBallastFill =
             static_cast<double>(config.VerticalControl.InitialEquilibriumBallastFill);
-        double simulationInitialDepthMeters = config.Simulation.InitialDepth.Value;
-        double simulationSeaFloorDepthMeters = config.Simulation.SeaFloorDepth.Value;
+        double simulationInitialDepthMeters = simulationConfig.InitialDepth.Value;
+        double simulationSeaFloorDepthMeters = simulationConfig.SeaFloorDepth.Value;
         std::string videoResourceId = config.VideoController.ResourceId.Value;
         std::string videoSourceDescription;
         std::string startupVideoEndpoint;
@@ -260,17 +273,17 @@ int main(const int argc, char** argv)
 
         config.ControlEndpoint = *parsedControlEndpoint;
         config.TelemetryEndpoint = *parsedTelemetryEndpoint;
-        config.Simulation.DroneMassKilograms = simulationDroneMassKilograms;
-        config.Simulation.FrictionCoefficient = simulationFrictionCoefficient;
-        config.Simulation.BallastMaximumMassKilograms = simulationBallastMaximumMassGrams / 1000.0;
-        config.Simulation.EquilibriumBallastPosition =
+        simulationConfig.DroneMassKilograms = simulationDroneMassKilograms;
+        simulationConfig.FrictionCoefficient = simulationFrictionCoefficient;
+        simulationConfig.BallastMaximumMassKilograms = simulationBallastMaximumMassGrams / 1000.0;
+        simulationConfig.EquilibriumBallastPosition =
             PiSubmarine::Ballast::BallastFillFraction{
                 PiSubmarine::NormalizedFraction{simulationEquilibriumBallastPosition}};
         config.VerticalControl.InitialEquilibriumBallastFill =
             PiSubmarine::Ballast::BallastFillFraction{
                 PiSubmarine::NormalizedFraction{verticalControlInitialEquilibriumBallastFill}};
-        config.Simulation.InitialDepth = PiSubmarine::Meters{simulationInitialDepthMeters};
-        config.Simulation.SeaFloorDepth = PiSubmarine::Meters{simulationSeaFloorDepthMeters};
+        simulationConfig.InitialDepth = PiSubmarine::Meters{simulationInitialDepthMeters};
+        simulationConfig.SeaFloorDepth = PiSubmarine::Meters{simulationSeaFloorDepthMeters};
         config.StartupVideoEndpoint = parsedStartupVideoEndpoint;
         config.StartupVideoEnable = startupVideoEnable;
         config.TickPeriod = std::chrono::milliseconds(tickPeriodMilliseconds);
@@ -285,7 +298,61 @@ int main(const int argc, char** argv)
                 .Description = videoSourceDescription};
         }
 
-        Runtime runtime(config);
+        BallastProvider ballastProvider(PiSubmarine::Ballast::BallastFillFraction::Empty());
+        BidirectionalMotor ballastMotor;
+        BallastActuator ballastActuator(ballastMotor, ballastProvider);
+        PiSubmarine::Ballast::Pid::Controller ballastController(
+            ballastMotor,
+            ballastProvider,
+            PiSubmarine::Ballast::Pid::Controller::Config{
+                .ProportionalGain = 20,
+                .IntegralGainPerSecond = 0.25,
+                .IntegralLimit = 1.0,
+                .PositionDeadband = PiSubmarine::NormalizedFraction{0.01},
+                .MaxDutyCycle = PiSubmarine::NormalizedFraction{1.0}},
+            PiSubmarine::Ballast::BallastFillFraction::Empty());
+        BatteryProvider batteryProvider;
+        UnidirectionalMotor frontLeftMotor;
+        UnidirectionalMotor frontRightMotor;
+        UnidirectionalMotor rearLeftMotor;
+        UnidirectionalMotor rearRightMotor;
+        VerticalSimulationEngine verticalSimulation(ballastProvider, simulationConfig);
+        DepthProvider depthProvider(verticalSimulation);
+        ProximityProvider proximityProvider(verticalSimulation);
+        LampController lampController;
+        ServoController servoController;
+
+        Runtime runtime(
+            config,
+            Runtime::Dependencies{
+                .BallastController = ballastController,
+                .BallastTelemetryProvider = ballastProvider,
+                .BatteryTelemetryProvider = batteryProvider,
+                .BallastMotorController = ballastMotor,
+                .BallastMotorTelemetryProvider = ballastMotor,
+                .FrontLeftMotorController = frontLeftMotor,
+                .FrontLeftMotorTelemetryProvider = frontLeftMotor,
+                .FrontRightMotorController = frontRightMotor,
+                .FrontRightMotorTelemetryProvider = frontRightMotor,
+                .RearLeftMotorController = rearLeftMotor,
+                .RearLeftMotorTelemetryProvider = rearLeftMotor,
+                .RearRightMotorController = rearRightMotor,
+                .RearRightMotorTelemetryProvider = rearRightMotor,
+                .DepthTelemetryProvider = depthProvider,
+                .LampController = lampController,
+                .LampTelemetryProvider = lampController,
+                .ProximityTelemetryProvider = proximityProvider,
+                .ServoController = servoController,
+                .PlatformTickables = {
+                    ballastActuator,
+                    verticalSimulation,
+                    batteryProvider,
+                    lampController,
+                    frontLeftMotor,
+                    frontRightMotor,
+                    rearLeftMotor,
+                    rearRightMotor}});
+
         const auto runResult = runtime.Run();
         if (!runResult.has_value())
         {
