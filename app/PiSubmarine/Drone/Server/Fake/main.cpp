@@ -25,7 +25,7 @@
 #include "PiSubmarine/Drone/Server/Fake/UnidirectionalMotor.h"
 #include "PiSubmarine/Drone/Server/Fake/VerticalSimulationEngine.h"
 #include "PiSubmarine/Error/Api/Error.h"
-#include "PiSubmarine/Video/Server/GStreamer/Source.h"
+#include "PiSubmarine/Video/Server/GStreamer/Head.h"
 #include "PiSubmarine/Video/Subscription/Api/Endpoint.h"
 
 namespace PiSubmarine::Drone::Server::Fake
@@ -140,7 +140,7 @@ int main(const int argc, char** argv)
 
     try
     {
-        Runtime::Config config;
+        PiSubmarine::Drone::Server::Config config;
         VerticalSimulationConfig simulationConfig;
         std::filesystem::path serverCertificatePath;
         std::filesystem::path serverPrivateKeyPath;
@@ -291,10 +291,12 @@ int main(const int argc, char** argv)
         config.GrpcServer.ServerPrivateKey = ReadTextFile(serverPrivateKeyPath);
         config.GrpcServer.ClientCertificateAuthority = ReadTextFile(clientCertificateAuthorityPath);
         config.VideoController.ResourceId = PiSubmarine::Lease::Api::ResourceId{.Value = videoResourceId};
+        config.VideoController.VideoHead = PiSubmarine::Video::Server::GStreamer::AutoDetectPipelineHead{};
         if (!videoSourceDescription.empty())
         {
-            config.VideoController.VideoSource = PiSubmarine::Video::Server::GStreamer::ElementSource{
-                .Description = videoSourceDescription};
+            config.VideoController.VideoHead = PiSubmarine::Video::Server::GStreamer::AutoDetectPipelineHead{
+                .VideoSource = PiSubmarine::Video::Server::GStreamer::ElementSource{
+                    .Description = videoSourceDescription}};
         }
 
         BallastProvider ballastProvider(PiSubmarine::Ballast::BallastFillFraction::Empty());
@@ -313,7 +315,7 @@ int main(const int argc, char** argv)
 
         Runtime runtime(
             config,
-            Runtime::Dependencies{
+            PiSubmarine::Drone::Server::Dependencies{
                 .BallastTelemetryProvider = ballastProvider,
                 .BatteryTelemetryProvider = batteryProvider,
                 .BallastMotorController = ballastMotor,
